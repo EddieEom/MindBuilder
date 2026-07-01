@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  db:
+    # pgvector 확장이 포함된 PostgreSQL 이미지 사용
+    image: ankane/pgvector:v0.5.1
+    container_name: mindbuilder_db
+    environment:
+      POSTGRES_USER: mindbuilder_user
+      POSTGRES_PASSWORD: mindbuilder_password
+      POSTGRES_DB: mindbuilder
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: mindbuilder_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:

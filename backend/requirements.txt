@@ -1,0 +1,22 @@
+# Web Framework
+fastapi
+uvicorn[standard]
+
+# Database & ORM
+SQLAlchemy
+alembic
+asyncpg
+pgvector
+psycopg2-binary
+
+# Cache & Environment
+redis
+pydantic-settings
+python-dotenv
+
+# Authentication & Security
+python-jose[cryptography]
+passlib[bcrypt]
+
+
+httpx
