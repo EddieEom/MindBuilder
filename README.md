@@ -1,8 +1,6 @@
+## MindBuilder 프로젝트 소개
 
-# MindBuilder
-
-## 프로젝트 소개
-
+```
 MindBuilder는 AI 시대의 Human Operating System(Human OS)을 구축하기 위한 AI 기반 사고 분석 플랫폼입니다.
 
 이 프로젝트는 감정을 기록하는 서비스가 아니라,
@@ -13,16 +11,14 @@ MindBuilder는 AI 시대의 Human Operating System(Human OS)을 구축하기 위
 - 성장 방향
 - Identity
 - Life Map
-- Human Operating System
+- Human Operating System 
 
-을 구축하는 것을 목표로 합니다.
-
-
-# 프로젝트 철학
-
+위 사항을 구축하는 것을 목표로 합니다.
 ```
+
 ## 프로젝트 철학
 
+```
 우리는 감정을 수집하지 않습니다.
 
 우리는 사고 데이터를 수집합니다.
@@ -38,7 +34,7 @@ MindBuilder는 AI 시대의 Human Operating System(Human OS)을 구축하기 위
 우리는 Human Operating System을 구축합니다.
 ```
 
-# 기술 스택
+## 기술 스택
 
 
 | 영역        | 기술                |
@@ -57,6 +53,7 @@ MindBuilder는 AI 시대의 Human Operating System(Human OS)을 구축하기 위
 
 ## 이 프로젝트에서 직접 설계한 내용
 
+```
 - 요구사항 정의서 작성
 - 화면 설계
 - ERD 설계
@@ -67,11 +64,12 @@ MindBuilder는 AI 시대의 Human Operating System(Human OS)을 구축하기 위
 - Pattern Analysis Engine 설계
 - Memory Layer 설계
 - Human Operating System 구조 설계
-
+```
 
 
 ## 프로젝트를 통해 배우고 싶은 것
 
+```
 이 프로젝트는 단순히 AI를 사용하는 프로젝트가 아닙니다.
 
 서비스 기획부터
@@ -91,6 +89,7 @@ LLM 연동
 운영 가능한 서비스 구조까지
 
 하나의 서비스를 처음부터 끝까지 구축하는 경험을 목표로 개발하고 있습니다.
+```
 
 ## 🚧 개발 현황
 
