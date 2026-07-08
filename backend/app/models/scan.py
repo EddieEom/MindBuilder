@@ -12,7 +12,7 @@ from sqlalchemy import (
     CheckConstraint,
     func,
 )
-
+from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -50,7 +50,7 @@ class Scan(Base):
         nullable=False,
     )
 
-    started_at: Mapped[str] = mapped_column(
+    started_at = mapped_column(
         TIMESTAMP,
         nullable=False,
     )
