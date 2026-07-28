@@ -60,9 +60,8 @@ class EvidenceBuilder:
                 0.0,
             ),
 
-            "confidence": feature_result.confidences.get(
+            "confidence": feature_result.confidence.get(
                 feature_name,
-                0.0,
             ),
 
             "strength": self._calculate_strength(

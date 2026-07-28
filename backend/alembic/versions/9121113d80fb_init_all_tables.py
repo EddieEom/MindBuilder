@@ -1,8 +1,8 @@
-"""init_db_schema
+"""init_all_tables
 
-Revision ID: 88e7c5e826d3
-Revises: 32894c96371c
-Create Date: 2026-07-01 20:59:44.020945
+Revision ID: 9121113d80fb
+Revises: 
+Create Date: 2026-07-29 05:02:37.548735
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '88e7c5e826d3'
-down_revision: Union[str, None] = '32894c96371c'
+revision: str = '9121113d80fb'
+down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -113,6 +113,18 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('tag_id'),
     sa.UniqueConstraint('name')
     )
+    op.create_table('users',
+    sa.Column('user_id', sa.BIGINT(), autoincrement=True, nullable=False),
+    sa.Column('email', sa.String(length=255), nullable=False),
+    sa.Column('nickname', sa.String(length=50), nullable=False),
+    sa.Column('profile_image', sa.String(length=255), nullable=True),
+    sa.Column('status', sa.String(length=20), server_default='ACTIVE', nullable=False),
+    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('deleted_at', sa.TIMESTAMP(), nullable=True),
+    sa.PrimaryKeyConstraint('user_id'),
+    sa.UniqueConstraint('email')
+    )
     op.create_table('archive_events',
     sa.Column('event_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), nullable=False),
@@ -168,6 +180,17 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('notification_id')
     )
     op.create_index(op.f('ix_notifications_user_id'), 'notifications', ['user_id'], unique=False)
+    op.create_table('oauth_accounts',
+    sa.Column('oauth_id', sa.BIGINT(), autoincrement=True, nullable=False),
+    sa.Column('user_id', sa.BIGINT(), nullable=False),
+    sa.Column('provider', sa.String(length=20), nullable=False),
+    sa.Column('provider_user_id', sa.String(length=255), nullable=False),
+    sa.Column('provider_email', sa.String(length=255), nullable=False),
+    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
+    sa.PrimaryKeyConstraint('oauth_id')
+    )
+    op.create_index(op.f('ix_oauth_accounts_user_id'), 'oauth_accounts', ['user_id'], unique=False)
     op.create_table('question_options',
     sa.Column('option_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('question_id', sa.SMALLINT(), nullable=False),
@@ -187,6 +210,18 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['set_id'], ['question_sets.set_id'], ),
     sa.PrimaryKeyConstraint('set_id', 'question_id')
     )
+    op.create_table('refresh_tokens',
+    sa.Column('refresh_token_id', sa.BIGINT(), autoincrement=True, nullable=False),
+    sa.Column('user_id', sa.BIGINT(), nullable=False),
+    sa.Column('refresh_token', sa.String(), nullable=False),
+    sa.Column('device_name', sa.String(length=100), nullable=True),
+    sa.Column('expired_at', sa.TIMESTAMP(), nullable=False),
+    sa.Column('last_login_at', sa.TIMESTAMP(), nullable=False),
+    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
+    sa.PrimaryKeyConstraint('refresh_token_id')
+    )
+    op.create_index(op.f('ix_refresh_tokens_user_id'), 'refresh_tokens', ['user_id'], unique=False)
     op.create_table('scans',
     sa.Column('scan_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), nullable=False),
@@ -448,9 +483,13 @@ def downgrade() -> None:
     op.drop_table('answers')
     op.drop_index(op.f('ix_scans_user_id'), table_name='scans')
     op.drop_table('scans')
+    op.drop_index(op.f('ix_refresh_tokens_user_id'), table_name='refresh_tokens')
+    op.drop_table('refresh_tokens')
     op.drop_table('question_set_items')
     op.drop_index(op.f('ix_question_options_question_id'), table_name='question_options')
     op.drop_table('question_options')
+    op.drop_index(op.f('ix_oauth_accounts_user_id'), table_name='oauth_accounts')
+    op.drop_table('oauth_accounts')
     op.drop_index(op.f('ix_notifications_user_id'), table_name='notifications')
     op.drop_table('notifications')
     op.drop_table('life_maps')
@@ -458,6 +497,7 @@ def downgrade() -> None:
     op.drop_table('data_confidence')
     op.drop_index(op.f('ix_archive_events_user_id'), table_name='archive_events')
     op.drop_table('archive_events')
+    op.drop_table('users')
     op.drop_table('tags')
     op.drop_table('rag_sources')
     op.drop_table('questions')
