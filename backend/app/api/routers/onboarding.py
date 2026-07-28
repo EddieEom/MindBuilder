@@ -28,6 +28,7 @@ from app.services.pattern_analysis_service import (
 from app.schemas.pattern_analysis import (
     PatternAnalysisResponse,
 )
+from app.services.growth_service import GrowthService
 
 router = APIRouter(
     tags=["Onboarding"],
@@ -57,6 +58,9 @@ async def get_onboarding_questions(
     service = OnboardingService(
         question_repository=QuestionRepository(db),
         scan_repository=ScanRepository(db),
+        answer_repository=None,
+        pattern_analysis_service=None,
+        growth_service=None,
     )
 
     return await service.get_onboarding_questions()
@@ -75,6 +79,9 @@ async def start_onboarding(
     service = OnboardingService(
         question_repository=QuestionRepository(db),
         scan_repository=ScanRepository(db),
+        answer_repository=None,
+        pattern_analysis_service=None,
+        growth_service=None,
     )
 
     return await service.start_onboarding(current_user)
@@ -102,6 +109,7 @@ async def submit_answers(
             pattern_repository=PatternRepository(db),
             feature_repository=FeatureRepository(db),
         ),
+        growth_service=GrowthService(),
     )
 
     

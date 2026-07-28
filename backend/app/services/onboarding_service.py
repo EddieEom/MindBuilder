@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from typing import Optional
 from app.models.user import User
 from app.schemas.question import (
     QuestionOptionResponse,
@@ -12,6 +13,9 @@ from app.schemas.answer import (
 
 from app.schemas.pattern_analysis import PatternAnalysisResponse
 from app.schemas.scan import StartOnboardingResponse
+from app.repositories.answer_repository import AnswerRepository
+from app.services.pattern_analysis_service import PatternAnalysisService
+from app.services.growth_service import GrowthService
 
 class OnboardingService:
     """
@@ -32,14 +36,22 @@ class OnboardingService:
         self,
         question_repository,
         scan_repository,
-        answer_repository=None,
-        pattern_analysis_service=None,
+        answer_repository: Optional[AnswerRepository] = None,
+        pattern_analysis_service: Optional[PatternAnalysisService] = None,
+        growth_service: Optional[GrowthService] = None,
     ):
 
         self.question_repository = question_repository
         self.scan_repository = scan_repository
         self.answer_repository = answer_repository
-        self.pattern_analysis_service = pattern_analysis_service
+
+        self.pattern_analysis_service = (
+            pattern_analysis_service
+        )
+
+        self.growth_service = (
+            growth_service
+        )
 
     async def get_onboarding_questions(self) -> QuestionSetResponse:
         """
@@ -140,6 +152,14 @@ class OnboardingService:
         - 기타 입력(answer_details) 저장
         - 마지막에 Commit
         """
+        if self.answer_repository is None:
+            raise RuntimeError("AnswerRepository is not initialized.")
+
+        if self.pattern_analysis_service is None:
+            raise RuntimeError("PatternAnalysisService is not initialized.")
+
+        if self.growth_service is None:
+            raise RuntimeError("GrowthService is not initialized.")
 
         try:
 
@@ -178,21 +198,31 @@ class OnboardingService:
 
             await self.answer_repository.commit()
 
-            result = await self.pattern_analysis_service.analyze(
-                scan.scan_id
+            feature_result = (
+                await self.pattern_analysis_service.analyze(
+                    scan.scan_id
+                )
+            )
+
+            growth_result = (
+                await self.growth_service.analyze(
+                    feature_result
+                )
             )
 
             return PatternAnalysisResponse(
 
-                pattern_id=result.metadata["pattern_id"],
+                pattern_id=feature_result.metadata["pattern_id"],
 
-                confidence=result.confidence_score,
+                confidence=feature_result.confidence_score,
 
-                scores=result.scores,
+                scores=feature_result.scores,
 
-                patterns=result.patterns,
+                patterns=feature_result.patterns,
 
-                metadata=result.metadata,
+                metadata=feature_result.metadata,
+
+                growth=growth_result,
             )
 
         except Exception:
