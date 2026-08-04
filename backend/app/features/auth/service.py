@@ -17,7 +17,12 @@ class AuthService:
         oauth_account = result.scalar_one_or_none()
 
         if oauth_account:
-            return await db.get(User, oauth_account.user_id)
+            user = await db.get(User, oauth_account.user_id)
+
+            if user is None:
+                raise ValueError("OAuth account user not found.")
+
+            return user
 
         new_user = User(
             email=user_data.email,

@@ -5,6 +5,10 @@ from app.schemas.growth import (
     GrowthResponse,
 )
 
+from app.schemas.identity import (
+    IdentityResponse,
+)
+
 
 class PatternAnalysisResponse(BaseModel):
 
@@ -19,3 +23,5 @@ class PatternAnalysisResponse(BaseModel):
     metadata: dict
 
     growth: GrowthResponse
+
+    identity: IdentityResponse

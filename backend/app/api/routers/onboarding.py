@@ -29,6 +29,7 @@ from app.schemas.pattern_analysis import (
     PatternAnalysisResponse,
 )
 from app.services.growth_service import GrowthService
+from app.services.identity_service import IdentityService
 
 router = APIRouter(
     tags=["Onboarding"],
@@ -105,11 +106,12 @@ async def submit_answers(
         scan_repository=ScanRepository(db),
         answer_repository=answer_repository,
         pattern_analysis_service=PatternAnalysisService(
-            answer_repository=answer_repository,
-            pattern_repository=PatternRepository(db),
-            feature_repository=FeatureRepository(db),
+        answer_repository=answer_repository,
+        pattern_repository=PatternRepository(db),
+        feature_repository=FeatureRepository(db),
         ),
         growth_service=GrowthService(),
+        identity_service=IdentityService(db),
     )
 
     

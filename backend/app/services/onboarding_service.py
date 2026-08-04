@@ -16,6 +16,9 @@ from app.schemas.scan import StartOnboardingResponse
 from app.repositories.answer_repository import AnswerRepository
 from app.services.pattern_analysis_service import PatternAnalysisService
 from app.services.growth_service import GrowthService
+from app.services.identity_service import (
+    IdentityService,
+)
 
 class OnboardingService:
     """
@@ -39,6 +42,8 @@ class OnboardingService:
         answer_repository: Optional[AnswerRepository] = None,
         pattern_analysis_service: Optional[PatternAnalysisService] = None,
         growth_service: Optional[GrowthService] = None,
+        identity_service: Optional[IdentityService] = None,
+        
     ):
 
         self.question_repository = question_repository
@@ -51,6 +56,10 @@ class OnboardingService:
 
         self.growth_service = (
             growth_service
+        )
+
+        self.identity_service = (
+            identity_service
         )
 
     async def get_onboarding_questions(self) -> QuestionSetResponse:
@@ -161,6 +170,9 @@ class OnboardingService:
         if self.growth_service is None:
             raise RuntimeError("GrowthService is not initialized.")
 
+        if self.identity_service is None:
+            raise RuntimeError("IdentityService is not initialized.")
+
         try:
 
             for answer in request.answers:
@@ -210,6 +222,14 @@ class OnboardingService:
                 )
             )
 
+            identity_result = (
+                await self.identity_service.analyze(
+                    user_id=current_user.user_id,
+                    feature_result=feature_result,
+                    growth_result=growth_result,
+                )
+            )
+
             return PatternAnalysisResponse(
 
                 pattern_id=feature_result.metadata["pattern_id"],
@@ -223,6 +243,8 @@ class OnboardingService:
                 metadata=feature_result.metadata,
 
                 growth=growth_result,
+
+                identity=identity_result,
             )
 
         except Exception:

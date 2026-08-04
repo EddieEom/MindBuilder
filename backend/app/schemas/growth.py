@@ -86,20 +86,23 @@ class GrowthItem(BaseModel):
     evidence: list[Any] = []
 
 
+from pydantic import BaseModel, Field
+from typing import Any
+
 class GrowthResponse(BaseModel):
 
-    unlearning: dict | None = None
+    unlearning: UnlearningResponse | None = None
 
-    relearning: dict | None = None
+    relearning: RelearningResponse | None = None
 
-    newlearning: dict | None = None
+    newlearning: NewlearningResponse | None = None
 
-    explanations: list[dict] = []
+    explanations: list[ExplanationResponse] = Field(default_factory=list)
 
-    recommendations: list[dict] = []
+    recommendations: list[RecommendationResponse] = Field(default_factory=list)
 
-    feedback: dict = {}
+    feedback: dict[str, Any] = Field(default_factory=dict)
 
-    metadata: dict = {}
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
-    warnings: list[str] = []
+    warnings: list[str] = Field(default_factory=list)

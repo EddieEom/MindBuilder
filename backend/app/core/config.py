@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = Field(default="mindbuilder")
 
     # 인증 설정
-    SECRET_KEY: str
+    SECRET_KEY: str = Field(default="")
     ALGORITHM: str = "HS256"
 
     @property

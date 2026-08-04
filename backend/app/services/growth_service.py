@@ -11,7 +11,10 @@ from app.ai.growth.growth_engine import (
 )
 
 from app.schemas.growth import (
+    NewlearningResponse,
+    RelearningResponse,
     GrowthResponse,
+    UnlearningResponse,
 )
 
 
@@ -48,11 +51,29 @@ class GrowthService:
 
         return GrowthResponse(
 
-            unlearning=growth_result.unlearning,
+            unlearning=(
+                UnlearningResponse(
+                    **growth_result.unlearning
+                )
+                if growth_result.unlearning
+                else None
+            ),
 
-            relearning=growth_result.relearning,
+            relearning=(
+                RelearningResponse(
+                    **growth_result.relearning
+                )
+                if growth_result.relearning
+                else None
+            ),
 
-            newlearning=growth_result.newlearning,
+            newlearning=(
+                NewlearningResponse(
+                    **growth_result.newlearning
+                )
+                if growth_result.newlearning
+                else None
+            ),
 
             explanations=growth_result.explanations,
 

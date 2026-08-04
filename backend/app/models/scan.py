@@ -50,12 +50,12 @@ class Scan(Base):
         nullable=False,
     )
 
-    started_at = mapped_column(
+    started_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         nullable=False,
     )
 
-    completed_at: Mapped[str | None] = mapped_column(
+    completed_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP,
         nullable=True,
     )

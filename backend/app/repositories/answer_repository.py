@@ -96,7 +96,9 @@ class AnswerRepository:
 
         result = await self.db.execute(stmt)
 
-        return result.scalars().all()
+        return list(
+            result.scalars().all()
+        )
 
     # ======================================================
     # Question 하나 조회
