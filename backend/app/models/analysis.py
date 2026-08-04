@@ -202,6 +202,12 @@ class Recommendation(Base):
         nullable=True,
     )
 
+    priority: Mapped[int] = mapped_column(
+        SMALLINT,
+        server_default="1",
+        nullable=False,
+    )
+
     status: Mapped[str] = mapped_column(
         String(20),
         server_default="WAITING",

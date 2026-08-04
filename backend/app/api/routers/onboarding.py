@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, get_archive_service
+from app.services.archive_service import ArchiveService
 
 from app.models.user import User
 
@@ -20,6 +21,7 @@ from app.repositories.answer_repository import AnswerRepository
 
 from app.repositories.pattern_repository import PatternRepository
 from app.repositories.feature_repository import FeatureRepository
+from app.repositories.growth_repository import GrowthRepository
 
 from app.services.pattern_analysis_service import (
     PatternAnalysisService,
@@ -98,27 +100,40 @@ async def submit_answers(
     request: SubmitAnswersRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    archive_service: ArchiveService = Depends(get_archive_service),
 ):
     answer_repository = AnswerRepository(db)
+    pattern_repository = PatternRepository(db)
+    growth_repository = GrowthRepository(db)
 
     service = OnboardingService(
         question_repository=QuestionRepository(db),
         scan_repository=ScanRepository(db),
         answer_repository=answer_repository,
         pattern_analysis_service=PatternAnalysisService(
-        answer_repository=answer_repository,
-        pattern_repository=PatternRepository(db),
-        feature_repository=FeatureRepository(db),
+            answer_repository=answer_repository,
+            pattern_repository=pattern_repository,
+            feature_repository=FeatureRepository(db),
         ),
-        growth_service=GrowthService(),
+        growth_service=GrowthService(
+            growth_repository=growth_repository,
+            pattern_repository=pattern_repository,
+        ),
         identity_service=IdentityService(db),
     )
 
-    
-    return await service.submit_answers(
+    response = await service.submit_answers(
         current_user=current_user,
         request=request,
     )
+
+    await archive_service.record_onboarding_workflow(
+        user_id=current_user.user_id,
+        scan_id=request.scan_id,
+        response=response,
+    )
+
+    return response
 
 """
 @router.post(

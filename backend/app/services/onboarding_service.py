@@ -218,7 +218,8 @@ class OnboardingService:
 
             growth_result = (
                 await self.growth_service.analyze(
-                    feature_result
+                    feature_result,
+                    feature_result.metadata["pattern_id"],
                 )
             )
 

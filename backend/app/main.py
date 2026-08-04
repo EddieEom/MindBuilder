@@ -3,11 +3,12 @@ from app.core.config import settings
 
 # 라우터 임포트
 from app.features.auth.router import router as auth_router
-from app.api.routers import onboarding, growth, identity
+from app.api.routers import onboarding, growth, identity, lifemap, pattern, operating_system, archive, dashboard
 # FastAPI 인스턴스 생성
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
+    debug=True,
 )
 
 # 라우터 등록
@@ -22,6 +23,28 @@ app.include_router(
 )
 app.include_router(
     identity.router,
+    prefix="/api/v1",
+)
+    
+app.include_router(
+    lifemap.router,
+    prefix="/api/v1/lifemap",
+)
+app.include_router(
+    pattern.router,
+    prefix="/api/v1/pattern",
+)
+app.include_router(
+    operating_system.router,
+    prefix="/api/v1",
+)
+app.include_router(
+    archive.router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    dashboard.router,
     prefix="/api/v1",
 )
 

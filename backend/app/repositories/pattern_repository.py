@@ -81,6 +81,50 @@ class PatternRepository:
 
         return pattern
 
+    # ======================================================
+    # Insight
+    # ======================================================
+
+    async def create_insight(
+        self,
+        insight,
+    ):
+
+        self.db.add(insight)
+
+        await self.db.flush()
+
+        await self.db.refresh(insight)
+
+        return insight
+
+    # ======================================================
+    # Recommendation
+    # ======================================================
+
+    async def create_recommendation(
+        self,
+        recommendation,
+    ):
+
+        self.db.add(recommendation)
+
+        await self.db.flush()
+
+        await self.db.refresh(recommendation)
+
+        return recommendation
+
+    async def get_by_id(
+        self,
+        pattern_id: int,
+    ) -> PatternAnalysis | None:
+        stmt = select(PatternAnalysis).where(
+            PatternAnalysis.pattern_id == pattern_id
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_latest_by_scan(
         self,
         scan_id: int,

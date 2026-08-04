@@ -41,6 +41,16 @@ class IdentityRepository:
 
         return identity
 
+    async def get_by_id(
+        self,
+        identity_id: int,
+    ) -> Identity | None:
+        stmt = select(Identity).where(
+            Identity.identity_id == identity_id
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_current(
         self,
         user_id: int,

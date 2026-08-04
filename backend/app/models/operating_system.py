@@ -47,6 +47,12 @@ class OperatingSystem(Base):
         nullable=False,
     )
 
+    stage : Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="Seed",
+    )
+
     version: Mapped[str] = mapped_column(
         String(30),
         nullable=False,

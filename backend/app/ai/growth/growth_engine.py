@@ -1,3 +1,4 @@
+from app.ai.feature_extractor import feature_result
 from app.ai.growth.growth_result import (
     GrowthResult,
 )
@@ -52,6 +53,24 @@ class GrowthEngine:
         if newlearning:
             result.set_newlearning(newlearning)
 
+            # ==========================================
+            # Recommendation 생성
+            # ==========================================
+
+            result.add_recommendation(
+
+                {
+
+                    "title": newlearning["action"],
+
+                    "description": newlearning["habit"],
+
+                    "priority": 1,
+
+                }
+
+            )
+            
         result.set_metadata(
             "rule_based",
             True,

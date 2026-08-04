@@ -6,6 +6,11 @@ from app.ai.feature_extractor.feature_result import (
     FeatureResult,
 )
 
+from app.models.analysis import (
+    Insight,
+    Recommendation,
+)
+
 
 class PatternAnalysisService:
 
@@ -51,16 +56,65 @@ class PatternAnalysisService:
                 result=result,
             )
 
-            await self.pattern_repository.commit()
+            await self._persist_insights_and_recommendations(
+                pattern,
+                result,
+            )
 
             result.metadata["pattern_id"] = (
                 pattern.pattern_id
             )
 
             return result
-        
+
         except Exception:
 
             await self.pattern_repository.rollback()
 
             raise
+
+    async def _persist_insights_and_recommendations(
+        self,
+        pattern,
+        result: FeatureResult,
+    ) -> None:
+
+        if not result.patterns:
+            return
+
+        for raw_pattern in result.patterns:
+            title = raw_pattern.get("pattern", "Pattern Insight")
+            content = raw_pattern.get("reason", "")
+            priority = int(raw_pattern.get("priority", 1))
+
+            await self.pattern_repository.create_insight(
+                Insight(
+                    pattern_id=pattern.pattern_id,
+                    title=title,
+                    content=content,
+                    priority=priority,
+                )
+            )
+
+            growth_candidates = raw_pattern.get(
+                "growth_candidates",
+                [],
+            )
+
+            if growth_candidates:
+                description = (
+                    "성장 후보: "
+                    + ", ".join(
+                        str(c)
+                        for c in growth_candidates
+                    )
+                )
+
+                await self.pattern_repository.create_recommendation(
+                    Recommendation(
+                        pattern_id=pattern.pattern_id,
+                        title=f"{title} 성장 제안",
+                        description=description,
+                        priority=priority,
+                    )
+                )

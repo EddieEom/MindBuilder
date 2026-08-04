@@ -1,3 +1,4 @@
+from app.ai.growth import growth_result
 from app.ai.feature_extractor.feature_result import (
     FeatureResult,
 )
@@ -10,20 +11,48 @@ from app.ai.growth.growth_engine import (
     GrowthEngine,
 )
 
-from app.schemas.growth import (
-    NewlearningResponse,
-    RelearningResponse,
-    GrowthResponse,
-    UnlearningResponse,
+from app.ai.growth.growth_result import (
+    GrowthResult,
 )
 
+from app.models.growth import (
+    GrowthAnalysis,
+    GrowthItem,
+    AIExplanation,
+    Feedback,
+    NextAction,
+)
+from app.schemas.feedback import (
+    FeedbackRequest,
+    FeedbackResponse,
+)
+from app.models.analysis import Recommendation
+from app.repositories.pattern_repository import PatternRepository
+from app.schemas.growth_current import (
+    GrowthCurrentItemResponse,
+    GrowthCurrentRecommendationResponse,
+    GrowthCurrentFeedbackResponse,
+    GrowthCurrentMetadataResponse,
+    GrowthCurrentResponse,
+)
+
+from app.schemas.growth import (
+    GrowthResponse,
+    UnlearningResponse,
+    RelearningResponse,
+    NewlearningResponse,
+)
 
 class GrowthService:
 
     def __init__(
         self,
+        growth_repository,
+        pattern_repository,
     ):
 
+        self.growth_repository = growth_repository
+        self.pattern_repository = pattern_repository
         self.evidence_builder = (
             EvidenceBuilder()
         )
@@ -32,9 +61,139 @@ class GrowthService:
             GrowthEngine()
         )
 
+    async def get_current(
+        self,
+        user_id: int,
+    ) -> GrowthCurrentResponse:
+
+        growth_analysis = await self.growth_repository.get_current_growth(
+            user_id
+        )
+
+        if growth_analysis is None:
+            raise ValueError(
+                "Current Growth not found."
+            )
+
+        recommendations = await self.growth_repository.get_recommendations(
+            growth_analysis.pattern_id
+        )
+
+        feedbacks = await self.growth_repository.get_feedbacks(
+            growth_analysis.growth_analysis_id
+        )
+
+        return GrowthCurrentResponse(
+
+            items=[
+
+                GrowthCurrentItemResponse(
+
+                    type=item.growth_item_type.type_name,
+
+                    title=item.title,
+
+                    content=item.content,
+
+                    priority=item.priority,
+
+                )
+
+                for item in growth_analysis.growth_items
+
+            ],
+
+            recommendations=[
+
+                GrowthCurrentRecommendationResponse(
+
+                    title=recommendation.title,
+
+                    description=recommendation.description,
+
+                    priority=recommendation.priority,
+
+                )
+
+                for recommendation in recommendations
+
+            ],
+
+            feedback=(
+
+                GrowthCurrentFeedbackResponse(
+
+                    rating=feedbacks[0].rating,
+
+                    comment=feedbacks[0].comment,
+
+                )
+
+                if feedbacks
+
+                else None
+
+            ),
+
+            metadata=GrowthCurrentMetadataResponse(
+
+                growth_analysis_id=growth_analysis.growth_analysis_id,
+
+                analysis_version=growth_analysis.analysis_version,
+
+                llm_model=growth_analysis.llm_model,
+
+                confidence=float(
+                    growth_analysis.confidence
+                ),
+
+                created_at=growth_analysis.created_at,
+
+            ),
+        )
+
+
+
+    async def submit_feedback(
+        self,
+        growth_analysis_id: int,
+        request: FeedbackRequest,
+    ) -> FeedbackResponse:
+
+        growth_analysis = await self.growth_repository.get_growth_analysis(
+            growth_analysis_id
+        )
+
+        if growth_analysis is None:
+            raise ValueError(
+                "Growth Analysis not found."
+            )
+
+        feedback = await self.growth_repository.upsert_feedback(
+            growth_analysis_id=growth_analysis_id,
+            rating=request.rating,
+            comment=request.comment,
+        )
+
+        await self.growth_repository.commit()
+
+        return FeedbackResponse(
+
+            feedback_id=feedback.feedback_id,
+
+            rating=feedback.rating,
+
+            comment=feedback.comment,
+
+            message="Feedback saved successfully.",
+
+        )
+
+
     async def analyze(
         self,
         feature_result: FeatureResult,
+        pattern_id: int,
     ):
 
         evidence_map = (
@@ -49,39 +208,218 @@ class GrowthService:
             )
         )
 
-        return GrowthResponse(
+        growth_analysis = GrowthAnalysis(
+            pattern_id=pattern_id,
+            analysis_version=str(
+                growth_result.metadata.get(
+                    "engine_version",
+                    "rule_v1",
+                )
+            ),
+            llm_model=str(
+                growth_result.metadata.get(
+                    "llm_model",
+                    "rule_engine",
+                )
+            ),
+            confidence=float(
+                growth_result.metadata.get(
+                    "confidence",
+                    0.0,
+                )
+            ),
+        )
 
+        await self.growth_repository.create_growth_analysis(
+            growth_analysis
+        )
+
+        growth_result.metadata["growth_analysis_id"] = growth_analysis.growth_analysis_id
+
+        created_items: list[GrowthItem] = []
+
+        items = [
+            ("UNLEARNING", growth_result.unlearning),
+            ("RELEARNING", growth_result.relearning),
+            ("NEWLEARNING", growth_result.newlearning),
+        ]
+
+        for type_name, item_data in items:
+
+            if item_data is None:
+                continue
+
+            item_type = await self.growth_repository.get_or_create_growth_item_type(
+                type_name=type_name,
+                display_order=1,
+            )
+
+            growth_item = GrowthItem(
+                growth_analysis_id=growth_analysis.growth_analysis_id,
+                type_id=item_type.type_id,
+                title=item_data.get("title", ""),
+                content=item_data.get("description", ""),
+                priority=int(
+                    item_data.get("priority", 1)
+                ),
+            )
+
+            created_item = await self.growth_repository.create_growth_item(
+                growth_item
+            )
+
+            created_items.append(created_item)
+
+        await self._persist_explanations(
+            growth_result,
+            created_items,
+        )
+
+        await self._persist_recommendations(
+            growth_result,
+            pattern_id,
+        )
+
+        await self._persist_feedback(
+            growth_result,
+            growth_analysis,
+        )
+
+        # Ensure confidence fields exist for Pydantic validation
+        def _ensure_confidence(item):
+            if not item:
+                return None
+            if "confidence" not in item or item.get("confidence") is None:
+                item["confidence"] = 0.0
+            return item
+
+        un = _ensure_confidence(growth_result.unlearning)
+        re = _ensure_confidence(growth_result.relearning)
+        ne = _ensure_confidence(growth_result.newlearning)
+
+        return GrowthResponse(
             unlearning=(
                 UnlearningResponse(
-                    **growth_result.unlearning
+                    **un
                 )
-                if growth_result.unlearning
+                if un
                 else None
             ),
-
             relearning=(
                 RelearningResponse(
-                    **growth_result.relearning
+                    **re
                 )
-                if growth_result.relearning
+                if re
                 else None
             ),
-
             newlearning=(
                 NewlearningResponse(
-                    **growth_result.newlearning
+                    **ne
                 )
-                if growth_result.newlearning
+                if ne
                 else None
             ),
-
             explanations=growth_result.explanations,
-
             recommendations=growth_result.recommendations,
-
             feedback=growth_result.feedback,
-
             metadata=growth_result.metadata,
-
             warnings=growth_result.warnings,
+        )
+
+    async def _persist_explanations(
+        self,
+        growth_result: GrowthResult,
+        created_items: list[GrowthItem],
+    ) -> None:
+
+        if not growth_result.explanations:
+            return
+
+        for explanation_data in growth_result.explanations:
+            explanation_type = await self.growth_repository.get_or_create_explanation_type(
+                type_code=explanation_data.get("type", "DEFAULT"),
+                type_name=explanation_data.get("type", "Explanation"),
+                display_order=int(
+                    explanation_data.get("display_order", 1)
+                ),
+            )
+
+            target_item = None
+            if len(created_items) == 1:
+                target_item = created_items[0]
+            elif len(created_items) > 1:
+                target_item = created_items[0]
+
+            if target_item is None:
+                continue
+
+            await self.growth_repository.create_ai_explanation(
+                AIExplanation(
+                    growth_item_id=target_item.growth_item_id,
+                    type_id=explanation_type.type_id,
+                    title=explanation_data.get("title", "설명"),
+                    content=explanation_data.get("content", ""),
+                    confidence=float(
+                        explanation_data.get("confidence", 0.0)
+                    ),
+                    display_order=int(
+                        explanation_data.get("display_order", 1)
+                    ),
+                )
+            )
+
+    async def _persist_recommendations(
+        self,
+        growth_result: GrowthResult,
+        pattern_id: int,
+    ) -> None:
+
+        if not growth_result.recommendations:
+            return
+
+        for recommendation_data in growth_result.recommendations:
+            recommendation = Recommendation(
+                pattern_id=pattern_id,
+                title=recommendation_data.get("title", "추천 활동"),
+                description=recommendation_data.get("description", ""),
+                priority=int(
+                    recommendation_data.get("priority", 1)
+                ),
+            )
+
+            saved_recommendation = await self.pattern_repository.create_recommendation(
+                recommendation
+            )
+
+            if recommendation_data.get("next_actions"):
+                for action_data in recommendation_data["next_actions"]:
+                    await self.growth_repository.create_next_action(
+                        NextAction(
+                            user_id=int(
+                                action_data.get("user_id", 0)
+                            ),
+                            recommendation_id=saved_recommendation.recommendation_id,
+                            title=action_data.get("title", "다음 행동"),
+                            description=action_data.get("description", ""),
+                            status=action_data.get("status", "WAITING"),
+                        )
+                    )
+
+    async def _persist_feedback(
+        self,
+        growth_result: GrowthResult,
+        growth_analysis: GrowthAnalysis,
+    ) -> None:
+
+        if not growth_result.feedback:
+            return
+
+        await self.growth_repository.create_feedback(
+            Feedback(
+                growth_analysis_id=growth_analysis.growth_analysis_id,
+                rating=int(
+                    growth_result.feedback.get("rating", 0)
+                ),
+                comment=growth_result.feedback.get("comment"),
+            )
         )

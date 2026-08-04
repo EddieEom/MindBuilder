@@ -1,13 +1,22 @@
+
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.growth import (
     GrowthAnalysis,
     GrowthItem,
+    GrowthItemType,
+    ExplanationType,
     AIExplanation,
     Feedback,
+    NextAction,
 )
-
+from app.models.analysis import Recommendation
+from app.models.analysis import (
+    Recommendation,
+    PatternAnalysis,
+)
 
 class GrowthRepository:
 
@@ -17,6 +26,32 @@ class GrowthRepository:
     ):
 
         self.db = db
+
+
+
+
+    # ======================================================
+    # Recommendation
+    # ======================================================
+
+    async def get_recommendations(
+        self,
+        pattern_id: int,
+    ) -> list[Recommendation]:
+
+        stmt = (
+            select(Recommendation)
+            .where(
+                Recommendation.pattern_id == pattern_id
+            )
+            .order_by(
+                Recommendation.priority.asc()
+            )
+        )
+
+        result = await self.db.execute(stmt)
+
+        return list(result.scalars().all())
 
     # ======================================================
     # Growth Analysis
@@ -105,6 +140,11 @@ class GrowthRepository:
             select(
                 GrowthItem
             )
+            .options(
+                selectinload(
+                    GrowthItem.growth_item_type
+                )
+            )
             .where(
                 GrowthItem.growth_analysis_id
                 == growth_analysis_id
@@ -121,6 +161,90 @@ class GrowthRepository:
         return list(
             result.scalars().all()
         )
+
+    # ======================================================
+    # Growth Item Type
+    # ======================================================
+
+    async def get_or_create_growth_item_type(
+        self,
+        type_name: str,
+        display_order: int = 1,
+        description: str | None = None,
+    ):
+
+        stmt = (
+            select(
+                GrowthItemType
+            )
+            .where(
+                GrowthItemType.type_name == type_name
+            )
+        )
+
+        result = await self.db.execute(stmt)
+
+        item_type = result.scalar_one_or_none()
+
+        if item_type is not None:
+            return item_type
+
+        item_type = GrowthItemType(
+            type_name=type_name,
+            display_order=display_order,
+            description=description,
+        )
+
+        self.db.add(item_type)
+
+        await self.db.flush()
+
+        await self.db.refresh(item_type)
+
+        return item_type
+
+    # ======================================================
+    # Explanation Type
+    # ======================================================
+
+    async def get_or_create_explanation_type(
+        self,
+        type_code: str,
+        type_name: str,
+        display_order: int = 1,
+        description: str | None = None,
+    ):
+
+        stmt = (
+            select(
+                ExplanationType
+            )
+            .where(
+                ExplanationType.type_code == type_code
+            )
+        )
+
+        result = await self.db.execute(stmt)
+
+        explanation_type = result.scalar_one_or_none()
+
+        if explanation_type is not None:
+            return explanation_type
+
+        explanation_type = ExplanationType(
+            type_code=type_code,
+            type_name=type_name,
+            display_order=display_order,
+            description=description,
+        )
+
+        self.db.add(explanation_type)
+
+        await self.db.flush()
+
+        await self.db.refresh(explanation_type)
+
+        return explanation_type
 
     # ======================================================
     # AI Explanation
@@ -190,6 +314,23 @@ class GrowthRepository:
 
         return feedback
 
+    async def create_next_action(
+        self,
+        next_action: NextAction,
+    ) -> NextAction:
+
+        self.db.add(
+            next_action
+        )
+
+        await self.db.flush()
+
+        await self.db.refresh(
+            next_action
+        )
+
+        return next_action
+
     async def get_feedbacks(
         self,
         growth_analysis_id: int,
@@ -211,6 +352,144 @@ class GrowthRepository:
         )
 
     # ======================================================
+    # Feedback
+    # ======================================================
+
+    async def get_feedback(
+        self,
+        growth_analysis_id: int,
+    ) -> Feedback | None:
+
+        stmt = (
+            select(
+                Feedback
+            )
+            .where(
+                Feedback.growth_analysis_id
+                == growth_analysis_id
+            )
+        )
+
+        result = await self.db.execute(
+            stmt
+        )
+
+        return result.scalar_one_or_none()
+
+
+    async def upsert_feedback(
+        self,
+        growth_analysis_id: int,
+        rating: int,
+        comment: str | None,
+    ) -> Feedback:
+
+        feedback = await self.get_feedback(
+            growth_analysis_id
+        )
+
+        if feedback is None:
+
+            feedback = Feedback(
+
+                growth_analysis_id=growth_analysis_id,
+
+                rating=rating,
+
+                comment=comment,
+
+            )
+
+            self.db.add(
+                feedback
+            )
+
+        else:
+
+            feedback.rating = rating
+
+            feedback.comment = comment
+
+        await self.db.flush()
+
+        await self.db.refresh(
+            feedback
+        )
+
+        return feedback
+        
+    async def get_dashboard_growth(
+        self,
+        user_id: int,
+    ) -> GrowthAnalysis | None:
+
+        stmt = (
+            select(GrowthAnalysis)
+            .join(
+                PatternAnalysis,
+                GrowthAnalysis.pattern_id
+                == PatternAnalysis.pattern_id,
+            )
+            .join(
+                PatternAnalysis.scan,
+            )
+            .where(
+                PatternAnalysis.scan.has(
+                    user_id=user_id
+                )
+            )
+            .order_by(
+                GrowthAnalysis.created_at.desc()
+            )
+            .limit(1)
+        )
+
+        result = await self.db.execute(stmt)
+
+        return result.scalar_one_or_none()
+
+    # ======================================================
+    # Current Growth
+    # ======================================================
+
+    async def get_current_growth(
+        self,
+        user_id: int,
+    ) -> GrowthAnalysis | None:
+
+        stmt = (
+            select(GrowthAnalysis)
+            .options(
+                selectinload(
+                    GrowthAnalysis.growth_items
+                ).selectinload(
+                    GrowthItem.growth_item_type
+                )
+            )
+            .join(
+                PatternAnalysis,
+                GrowthAnalysis.pattern_id
+                == PatternAnalysis.pattern_id,
+            )
+            .join(
+                PatternAnalysis.scan,
+            )
+            .where(
+                PatternAnalysis.scan.has(
+                    user_id=user_id
+                )
+            )
+            .order_by(
+                GrowthAnalysis.created_at.desc()
+            )
+            .limit(1)
+        )
+
+        result = await self.db.execute(stmt)
+
+        return result.scalar_one_or_none()
+
+    # ======================================================
     # Transaction
     # ======================================================
 
@@ -225,3 +504,6 @@ class GrowthRepository:
     ) -> None:
 
         await self.db.rollback()
+
+
+    

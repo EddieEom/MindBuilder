@@ -338,6 +338,7 @@ class Feedback(Base):
         BIGINT,
         ForeignKey("growth_analysis.growth_analysis_id"),
         nullable=False,
+        unique=True,
     )
 
     rating: Mapped[int] = mapped_column(

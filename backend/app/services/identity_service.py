@@ -125,6 +125,8 @@ class IdentityService:
             identity
         )
 
+        identity_result.metadata["identity_id"] = identity.identity_id
+
         # Keyword
 
         for keyword in identity_result.keywords:

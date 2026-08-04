@@ -5,6 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.repositories.user_repository import UserRepository
+from app.services.archive_service import ArchiveService
+from app.repositories.dashboard_repository import DashboardRepository
+from app.services.dashboard_service import DashboardService
+from app.services.growth_service import GrowthService
+from app.repositories.growth_repository import GrowthRepository
+from app.repositories.pattern_repository import PatternRepository
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login"
@@ -35,3 +41,35 @@ async def get_current_user(
         )
 
     return user
+
+
+def get_archive_service(
+    db: AsyncSession = Depends(get_db),
+) -> ArchiveService:
+    from app.services.archive_service import ArchiveService
+    return ArchiveService(db=db)
+
+
+def get_dashboard_repository(
+    db: AsyncSession = Depends(get_db),
+) -> DashboardRepository:
+    return DashboardRepository(db)
+
+
+def get_dashboard_service(
+    dashboard_repository: DashboardRepository = Depends(
+        get_dashboard_repository
+    ),
+) -> DashboardService:
+    return DashboardService(
+        dashboard_repository=dashboard_repository,
+    )
+
+def get_growth_service(
+    db: AsyncSession = Depends(get_db),
+) -> GrowthService:
+
+    return GrowthService(
+        growth_repository=GrowthRepository(db),
+        pattern_repository=PatternRepository(db),
+    )
