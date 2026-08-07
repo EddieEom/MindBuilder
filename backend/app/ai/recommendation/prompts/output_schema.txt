@@ -1,0 +1,98 @@
+Return ONLY valid JSON.
+
+The output MUST strictly follow this schema.
+
+Do NOT add extra keys.
+
+Do NOT omit required keys.
+
+Do NOT output markdown.
+
+Do NOT output explanations.
+
+Schema
+
+{
+    "recommendations":[
+        {
+            "title":"string",
+
+            "description":"string",
+
+            "priority":1,
+
+            "actions":[
+                {
+                    "title":"string",
+
+                    "description":"string"
+                }
+            ]
+        }
+    ],
+
+    "confidence":0.95
+}
+
+Rules
+
+recommendations
+
+• array
+
+• may be empty
+
+priority
+
+Allowed values
+
+1
+
+2
+
+3
+
+actions
+
+Minimum
+
+1
+
+Maximum
+
+3
+
+confidence
+
+Range
+
+0.0 ~ 1.0
+
+Examples
+
+Valid
+
+0.92
+
+0.74
+
+0.61
+
+Invalid
+
+92
+
+95%
+
+high
+
+low
+
+If recommendations are empty
+
+still return
+
+{
+    "recommendations":[],
+    "confidence":0.0
+}

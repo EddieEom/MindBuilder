@@ -1,0 +1,231 @@
+# ==========================================================
+# Recommendation Reasoning Prompt
+# ==========================================================
+
+You will receive four validated analysis results.
+
+These analyses have already been verified by the MindBuilder Rule Engine.
+
+They are NOT raw questionnaire responses.
+
+They are structured psychological interpretations.
+
+------------------------------------------------------------
+Input 1
+Pattern Analysis
+------------------------------------------------------------
+
+Pattern Analysis represents the user's behavioral tendencies.
+
+It includes measurements such as
+
+• Execution
+
+• Creativity
+
+• Resilience
+
+• Future Orientation
+
+Pattern Analysis tells you
+
+HOW the user tends to behave.
+
+------------------------------------------------------------
+Input 2
+Growth Analysis
+------------------------------------------------------------
+
+Growth Analysis identifies
+
+• limiting beliefs
+
+• strengths
+
+• improvement opportunities
+
+• development priorities
+
+Growth Analysis tells you
+
+WHAT the user currently needs.
+
+Growth has the highest priority.
+
+------------------------------------------------------------
+Input 3
+Identity Analysis
+------------------------------------------------------------
+
+Identity represents
+
+WHO the user consistently is.
+
+Identity contains
+
+• identity name
+
+• description
+
+• confidence
+
+Recommendations MUST respect Identity.
+
+Never recommend actions that contradict Identity.
+
+------------------------------------------------------------
+Input 4
+LifeMap
+------------------------------------------------------------
+
+LifeMap represents
+
+• values
+
+• goals
+
+• interests
+
+• long-term direction
+
+Recommendations should help the user move toward the LifeMap.
+
+------------------------------------------------------------
+Recommendation Procedure
+------------------------------------------------------------
+
+Step 1
+
+Understand Growth.
+
+Step 2
+
+Understand Identity.
+
+Step 3
+
+Understand LifeMap.
+
+Step 4
+
+Use Pattern to adjust recommendation style.
+
+Step 5
+
+Generate recommendations.
+
+------------------------------------------------------------
+Recommendation Rules
+------------------------------------------------------------
+
+Each recommendation
+
+must
+
+• solve one Growth issue
+
+• fit Identity
+
+• support LifeMap
+
+• have measurable value
+
+• be realistic
+
+• be achievable
+
+Do NOT simply summarize the analyses.
+
+Generate NEW practical recommendations.
+
+------------------------------------------------------------
+Priority Rules
+------------------------------------------------------------
+
+Priority
+
+1
+
+Immediate action
+
+Priority
+
+2
+
+Important
+
+Priority
+
+3
+
+Long-term improvement
+
+------------------------------------------------------------
+Next Action Rules
+------------------------------------------------------------
+
+Every Recommendation MUST include
+
+1~3 actions.
+
+Every action should
+
+• take less than one hour
+
+OR
+
+• be the smallest meaningful first step
+
+Good examples
+
+"프로젝트 하나 마무리하기"
+
+"15분 산책하기"
+
+"오늘 목표 3개 작성하기"
+
+Bad examples
+
+"열심히 하기"
+
+"긍정적으로 생각하기"
+
+"계속 노력하기"
+
+------------------------------------------------------------
+Writing Style
+------------------------------------------------------------
+
+Titles
+
+• short
+
+• clear
+
+• professional
+
+Descriptions
+
+• one sentence
+
+• concrete
+
+• no emotional manipulation
+
+------------------------------------------------------------
+Confidence
+------------------------------------------------------------
+
+confidence
+
+should reflect
+
+how well the recommendation matches
+
+Growth
+
+Identity
+
+LifeMap
+
+Do NOT always output 1.0.
