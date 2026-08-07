@@ -30,9 +30,12 @@ class GrowthAnalysis(Base):
         autoincrement=True,
     )
 
-    pattern_id: Mapped[int] = mapped_column(
+    pattern_id = mapped_column(
         BIGINT,
-        ForeignKey("pattern_analysis.pattern_id"),
+        ForeignKey(
+            "pattern_analysis.pattern_id",
+            ondelete="CASCADE",
+        ),
         nullable=False,
         unique=True,
     )

@@ -91,6 +91,8 @@ class Scan(Base):
         "PatternAnalysis",
         back_populates="scan",
         uselist=False,
+        cascade="all, delete-orphan",
+        single_parent=True,
     )
 
 

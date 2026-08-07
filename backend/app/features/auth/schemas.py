@@ -27,3 +27,48 @@ class UserRead(BaseModel):
 
     class Config:
         from_attributes = True # SQLAlchemy 모델을 Pydantic으로 변환하기 위함
+
+class UserProfileResponse(BaseModel):
+    nickname: str
+    profile_image: str | None
+    identity_name: str
+    stage: str
+    scan_count: int
+    pattern_count: int
+    analysis_count: int
+    archive_count: int
+    goal_count: int
+    email: EmailStr
+    provider: str
+
+
+# ======================================================
+# Update Nickname
+# ======================================================
+
+class UpdateNicknameRequest(BaseModel):
+
+    nickname: str = Field(
+        ...,
+        min_length=2,
+        max_length=30,
+    )
+
+
+class UpdateNicknameResponse(BaseModel):
+
+    nickname: str
+
+
+# ======================================================
+# Update Profile Image
+# ======================================================
+
+class UpdateProfileImageRequest(BaseModel):
+
+    profile_image: str
+
+
+class UpdateProfileImageResponse(BaseModel):
+
+    profile_image: str

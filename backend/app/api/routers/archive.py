@@ -89,7 +89,7 @@ async def get_archive_calendar(
 ):
     events = await archive_service.get_archive_calendar(
         user_id=current_user.user_id,
-        date=date,
+        date=str(date),
     )
 
     return ArchiveListResponse(

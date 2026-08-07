@@ -36,7 +36,10 @@ class PatternAnalysis(Base):
 
     scan_id: Mapped[int] = mapped_column(
         BIGINT,
-        ForeignKey("scans.scan_id"),
+        ForeignKey(
+            "scans.scan_id",
+            ondelete="CASCADE",
+        ),
         nullable=False,
         unique=True,
     )
@@ -112,6 +115,8 @@ class PatternAnalysis(Base):
         "GrowthAnalysis",
         back_populates="pattern_analysis",
         uselist=False,
+        cascade="all, delete-orphan",
+        single_parent=True,
     )
 
 
