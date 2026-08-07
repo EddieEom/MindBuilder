@@ -3,7 +3,7 @@ from sqlalchemy import String, TIMESTAMP, ForeignKey, BIGINT, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 from typing import List
-
+from datetime import datetime
 class User(Base):
     __tablename__ = "users"
 
@@ -12,9 +12,9 @@ class User(Base):
     nickname: Mapped[str] = mapped_column(String(50), nullable=False)
     profile_image: Mapped[str] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(20), server_default="ACTIVE", nullable=False)
-    created_at: Mapped[str] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
-    updated_at: Mapped[str] = mapped_column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
-    deleted_at: Mapped[str] = mapped_column(TIMESTAMP, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+    deleted_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
 
     # Relationships
     oauth_accounts: Mapped[List["OAuthAccount"]] = relationship("OAuthAccount",back_populates="user",cascade="all, delete-orphan",)
@@ -78,7 +78,7 @@ class OAuthAccount(Base):
     provider: Mapped[str] = mapped_column(String(20), nullable=False)
     provider_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     provider_email: Mapped[str] = mapped_column(String(255), nullable=False)
-    created_at: Mapped[str] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     user = relationship("User", back_populates="oauth_accounts")
 
@@ -89,8 +89,8 @@ class RefreshToken(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"), nullable=False, index=True)
     refresh_token: Mapped[str] = mapped_column(String, nullable=False)
     device_name: Mapped[str] = mapped_column(String(100), nullable=True)
-    expired_at: Mapped[str] = mapped_column(TIMESTAMP, nullable=False)
-    last_login_at: Mapped[str] = mapped_column(TIMESTAMP, nullable=False)
-    created_at: Mapped[str] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+    expired_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
+    last_login_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     user = relationship("User", back_populates="refresh_tokens")

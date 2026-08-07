@@ -116,29 +116,6 @@ async def get_current_growth(
     )
 
 
-@router.post(
-    "/{growth_analysis_id}/feedback",
-    response_model=FeedbackResponse,
-    summary="Growth Feedback 저장",
-)
-async def submit_feedback(
-    growth_analysis_id: int,
-    request: FeedbackRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-
-    service = GrowthService(
-        growth_repository=GrowthRepository(db),
-        pattern_repository=PatternRepository(db),
-    )
-
-    return await service.submit_feedback(
-        growth_analysis_id=growth_analysis_id,
-        request=request,
-    )
-
-
 
 @router.get(
     "/{growth_analysis_id}",

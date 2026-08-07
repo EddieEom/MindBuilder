@@ -10,7 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     func,
 )
-
+from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -58,7 +58,7 @@ class OperatingSystem(Base):
         nullable=False,
     )
 
-    generated_at: Mapped[str] = mapped_column(
+    generated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,

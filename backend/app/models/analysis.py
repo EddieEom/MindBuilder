@@ -12,7 +12,7 @@ from sqlalchemy import (
     CheckConstraint,
     func,
 )
-
+from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -81,7 +81,7 @@ class PatternAnalysis(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,
@@ -150,7 +150,7 @@ class Insight(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,
@@ -214,7 +214,7 @@ class Recommendation(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,

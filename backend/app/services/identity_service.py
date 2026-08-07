@@ -29,6 +29,11 @@ from app.schemas.identity import (
 )
 
 
+from app.schemas.identity_history import (
+    IdentityHistoryItemResponse,
+    IdentityHistoryResponse,
+)
+
 class IdentityService:
 
     def __init__(
@@ -101,6 +106,10 @@ class IdentityService:
             user_id
         )
 
+        latest = await self.identity_repository.get_latest_version(
+            user_id
+        )
+
         if current:
 
             current.is_current = False
@@ -115,7 +124,7 @@ class IdentityService:
 
             confidence=identity_result.confidence,
 
-            version=1,
+            version = latest + 1,
 
             is_current=True,
 
@@ -378,5 +387,136 @@ class IdentityService:
             },
 
             warnings=[],
+
+        )
+
+
+    # ======================================================
+    # Detail
+    # ======================================================
+
+    async def get_detail(
+        self,
+        identity_id: int,
+    ) -> IdentityResponse:
+
+        identity = await self.identity_repository.get_by_id(
+            identity_id
+        )
+
+        if identity is None:
+            raise ValueError(
+                "Identity not found."
+            )
+
+        keywords = await self.identity_repository.get_keywords(
+            identity.identity_id
+        )
+
+        strengths = await self.identity_repository.get_strengths(
+            identity.identity_id
+        )
+
+        growth_points = await self.identity_repository.get_growth_points(
+            identity.identity_id
+        )
+
+        pattern_average = await self.pattern_repository.get_pattern_average(
+            identity.user_id
+        )
+
+        return IdentityResponse(
+
+            identity_name=identity.identity_name,
+
+            description=identity.description or "",
+
+            confidence=float(
+                identity.confidence
+            ),
+
+            creativity_score=int(
+                round(pattern_average.get(CREATIVITY, 0))
+            ),
+
+            execution_score=int(
+                round(pattern_average.get(EXECUTION, 0))
+            ),
+
+            uncertainty_score=int(
+                round(pattern_average.get(UNCERTAINTY, 0))
+            ),
+
+            keywords=keywords,
+
+            strengths=strengths,
+
+            growth_points=growth_points,
+
+            identity_scores={},
+
+            ranking=[],
+
+            primary_identity=identity.identity_name,
+
+            secondary_identity="",
+
+            score_gap=0.0,
+
+            matched_rules=[],
+
+            evidence={},
+
+            metadata={
+
+                "identity_id": identity.identity_id,
+
+                "version": identity.version,
+
+                "generated_at": identity.generated_at,
+
+            },
+
+            warnings=[],
+        )
+
+    # ======================================================
+    # Identity History
+    # ======================================================
+
+    async def get_history(
+        self,
+        user_id: int,
+    ) -> IdentityHistoryResponse:
+
+        identities = await self.identity_repository.get_history(
+            user_id
+        )
+
+        return IdentityHistoryResponse(
+
+            histories=[
+
+                IdentityHistoryItemResponse(
+
+                    identity_id=identity.identity_id,
+
+                    identity_name=identity.identity_name,
+
+                    version=identity.version,
+
+                    confidence=float(
+                        identity.confidence
+                    ),
+
+                    generated_at=identity.generated_at,
+
+                    is_current=identity.is_current,
+
+                )
+
+                for identity in identities
+
+            ]
 
         )

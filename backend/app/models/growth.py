@@ -11,7 +11,7 @@ from sqlalchemy import (
     func,
     CheckConstraint
 )
-
+from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -52,7 +52,7 @@ class GrowthAnalysis(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,
@@ -156,7 +156,7 @@ class GrowthItem(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,
@@ -270,7 +270,7 @@ class AIExplanation(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,
@@ -351,7 +351,7 @@ class Feedback(Base):
         nullable=True,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,
@@ -414,12 +414,12 @@ class NextAction(Base):
         nullable=False,
     )
 
-    completed_at: Mapped[str | None] = mapped_column(
+    completed_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP,
         nullable=True,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,

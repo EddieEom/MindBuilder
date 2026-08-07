@@ -11,6 +11,7 @@ from app.models.user import User
 
 from app.schemas.lifemap import (
     LifeMapResponse,
+    LifeMapNodeResponse,
 )
 
 from app.services.life_map_service import LifeMapService
@@ -67,4 +68,43 @@ async def get_current_life_map(
 
     return await service.get_current(
         user_id=current_user.user_id,
+    )
+
+
+# ======================================================
+# LifeMap History
+# ======================================================
+
+@router.get(
+    "/history",
+    response_model=list[LifeMapResponse],
+)
+async def get_life_map_history(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+
+    service = LifeMapService(db)
+
+    return await service.get_history(
+        user_id=current_user.user_id,
+    )
+
+# ======================================================
+# LifeMap Node Detail
+# ======================================================
+
+@router.get(
+    "/node/{node_id}",
+    response_model=LifeMapNodeResponse,
+)
+async def get_life_map_node(
+    node_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+
+    service = LifeMapService(db)
+
+    return await service.get_node(
+        node_id=node_id,
     )

@@ -292,3 +292,63 @@ class IdentityRepository:
     async def rollback(self):
 
         await self.db.rollback()
+
+    # ==========================================================
+    # History
+    # ==========================================================
+
+    async def get_history(
+        self,
+        user_id: int,
+    ) -> list[Identity]:
+
+        stmt = (
+
+            select(
+                Identity
+            )
+
+            .where(
+                Identity.user_id
+                == user_id
+            )
+
+            .order_by(
+                Identity.generated_at.desc()
+            )
+
+        )
+
+        result = await self.db.execute(
+            stmt
+        )
+
+        return list(
+            result.scalars().all()
+        )
+
+    # ==========================================================
+    # identity version
+    # ==========================================================
+
+    async def get_latest_version(
+        self,
+        user_id: int,
+    ) -> int:
+
+        stmt = (
+            select(Identity.version)
+            .where(
+                Identity.user_id == user_id
+            )
+            .order_by(
+                Identity.version.desc()
+            )
+            .limit(1)
+        )
+
+        result = await self.db.execute(stmt)
+
+        version = result.scalar_one_or_none()
+
+        return version or 0

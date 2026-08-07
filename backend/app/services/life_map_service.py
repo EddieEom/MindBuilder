@@ -714,3 +714,68 @@ class LifeMapService:
         return value[
             : max_length - 3
         ] + "..."
+
+
+    # ======================================================
+    # History
+    # ======================================================
+
+    async def get_history(
+        self,
+        user_id: int,
+    ) -> list[LifeMapResponse]:
+
+        life_maps = await self.life_map_repository.get_history(
+            user_id
+        )
+
+        responses: list[LifeMapResponse] = []
+
+        for life_map in life_maps:
+
+            nodes = await self.life_map_repository.get_nodes(
+                life_map.life_map_id
+            )
+
+            edges = await self.life_map_repository.get_edges(
+                life_map.life_map_id
+            )
+
+            responses.append(
+
+                self._model_to_response(
+                    life_map=life_map,
+                    nodes=nodes,
+                    edges=edges,
+                    title="My Life Map",
+                    metadata={},
+                    warnings=[],
+                )
+
+            )
+
+        return responses
+
+
+    # ======================================================
+    # Node Detail
+    # ======================================================
+
+    async def get_node(
+        self,
+        node_id: int,
+    ) -> LifeMapNodeResponse:
+
+        node = await self.life_map_repository.get_node(
+            node_id
+        )
+
+        if node is None:
+
+            raise ValueError(
+                "LifeMap Node not found."
+            )
+
+        return self._node_model_to_response(
+            node
+        )

@@ -19,8 +19,8 @@ from app.models.growth import GrowthAnalysis
 from app.schemas.operating_system import (
     OperatingSystemResponse,
     OSCoreValueResponse,
+    OperatingSystemVersionResponse,
 )
-
 
 class OperatingSystemService:
 
@@ -103,7 +103,7 @@ class OperatingSystemService:
 
         for index, value in enumerate(core_values, start=1):
             core_value = await self.os_repository.get_or_create_core_value(
-                value_name=value["value_name"],
+                value_name=value["value_name"] or "",
                 description=value.get("description"),
             )
             await self.os_repository.create_os_core_value(
@@ -272,7 +272,10 @@ class OperatingSystemService:
             "Resilience": float(pattern.resilience_score),
         }
 
-        top_label = max(scores, key=scores.get)
+        top_label = max(
+            scores.items(),
+            key=lambda item: item[1],
+        )[0]
 
         return {
             "Execution": "Execution-led",
@@ -440,7 +443,10 @@ class OperatingSystemService:
             "Resilient": float(pattern.resilience_score),
         }
 
-        return max(scores, key=scores.get)
+        return max(
+            scores.items(),
+            key=lambda item: item[1],
+        )[0]
 
     async def _derive_decision_pattern(
         self,
@@ -523,7 +529,7 @@ class OperatingSystemService:
             data_confidence=data_confidence,
             core_values=[
                 OSCoreValueResponse(
-                    value_name=value["value_name"],
+                    value_name=value["value_name"] or "",
                     description=value.get("description"),
                     priority=index,
                 )
@@ -539,3 +545,37 @@ class OperatingSystemService:
                 "life_map_id": operating_system.life_map_id,
             },
         )
+
+    # ======================================================
+    # Version
+    # ======================================================
+
+    async def get_versions(
+        self,
+        user_id: int,
+    ) -> list[OperatingSystemVersionResponse]:
+
+        operating_systems = await self.os_repository.get_history(
+            user_id
+        )
+
+        return [
+
+            OperatingSystemVersionResponse(
+
+                os_id=os.os_id,
+
+                version=os.version,
+
+                stage=os.stage,
+
+                generated_at=os.generated_at,
+
+                is_current=os.is_current,
+
+            )
+
+            for os in operating_systems
+
+        ]
+

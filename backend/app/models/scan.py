@@ -132,7 +132,7 @@ class Answer(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,
@@ -190,7 +190,7 @@ class AnswerDetail(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,
@@ -241,7 +241,7 @@ class FeatureValue(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,

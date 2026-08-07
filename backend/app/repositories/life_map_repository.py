@@ -296,3 +296,63 @@ class LifeMapRepository:
     ) -> None:
 
         await self.db.rollback()
+
+    # ======================================================
+    # History
+    # ======================================================
+
+    async def get_history(
+        self,
+        user_id: int,
+    ) -> list[LifeMap]:
+
+        stmt = (
+            select(LifeMap)
+            .where(
+                LifeMap.user_id == user_id
+            )
+            .order_by(
+                LifeMap.generated_at.desc(),
+                LifeMap.life_map_id.desc(),
+            )
+        )
+
+        result = await self.db.execute(stmt)
+
+        return list(
+            result.scalars().all()
+        )
+
+
+    # ======================================================
+    # Node
+    # ======================================================
+
+    async def get_node(
+        self,
+        node_id: int,
+    ) -> LifeMapNode | None:
+
+        stmt = (
+            select(LifeMapNode)
+            .where(
+                LifeMapNode.node_id == node_id
+            )
+            .options(
+                selectinload(
+                    LifeMapNode.node_type
+                ),
+                selectinload(
+                    LifeMapNode.node_tags
+                ).selectinload(
+                    NodeTag.tag
+                ),
+                selectinload(
+                    LifeMapNode.goals
+                ),
+            )
+        )
+
+        result = await self.db.execute(stmt)
+
+        return result.scalar_one_or_none()

@@ -1,7 +1,7 @@
 from typing import Any
 
 from pydantic import BaseModel, Field
-
+from datetime import datetime
 
 class OSCoreValueResponse(BaseModel):
     value_name: str
@@ -23,3 +23,20 @@ class OperatingSystemResponse(BaseModel):
 
 class OperatingSystemHistoryResponse(BaseModel):
     operating_systems: list[OperatingSystemResponse]
+
+
+# ======================================================
+# Version
+# ======================================================
+
+class OperatingSystemVersionResponse(BaseModel):
+
+    os_id: int
+
+    version: str
+
+    stage: str
+
+    generated_at: datetime
+
+    is_current: bool

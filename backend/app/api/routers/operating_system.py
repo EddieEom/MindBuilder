@@ -9,7 +9,7 @@ from app.api.dependencies import (
 from app.services.archive_service import ArchiveService
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.operating_system import OperatingSystemResponse
+from app.schemas.operating_system import OperatingSystemResponse, OperatingSystemVersionResponse
 from app.services.operating_system_service import OperatingSystemService
 
 router = APIRouter(
@@ -88,3 +88,20 @@ async def get_operating_system_history(
 ):
     service = OperatingSystemService(db)
     return await service.get_history(current_user.user_id)
+
+
+@router.get(
+    "/version",
+    response_model=list[OperatingSystemVersionResponse],
+    summary="Operating System 버전 목록 조회",
+)
+async def get_operating_system_versions(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+
+    service = OperatingSystemService(db)
+
+    return await service.get_versions(
+        current_user.user_id
+    )

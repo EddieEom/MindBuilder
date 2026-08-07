@@ -11,7 +11,7 @@ from sqlalchemy import (
 )
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from datetime import datetime
 from app.models.base import Base
 
 
@@ -55,7 +55,7 @@ class ArchiveEvent(Base):
         nullable=True,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,
@@ -105,7 +105,7 @@ class Notification(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,
@@ -147,7 +147,7 @@ class PromptVersion(Base):
         nullable=False,
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         nullable=False,

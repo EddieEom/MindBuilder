@@ -14,6 +14,10 @@ from app.schemas.identity import (
     IdentityResponse,
 )
 
+from app.schemas.identity_history import (
+    IdentityHistoryResponse,
+)
+
 router = APIRouter(
     prefix="/identity",
     tags=["Identity"],
@@ -58,5 +62,43 @@ async def get_current_identity(
     service = IdentityService(db)
 
     return await service.get_current_identity(
+        current_user.user_id
+    )
+
+
+@router.get(
+    "/detail/{identity_id}",
+    response_model=IdentityResponse,
+)
+async def get_identity_detail(
+
+    identity_id: int,
+
+    db: AsyncSession = Depends(get_db),
+
+):
+
+    service = IdentityService(db)
+
+    return await service.get_detail(
+        identity_id
+    )
+
+
+@router.get(
+    "/history",
+    response_model=IdentityHistoryResponse,
+)
+async def get_identity_history(
+
+    current_user: User = Depends(get_current_user),
+
+    db: AsyncSession = Depends(get_db),
+
+):
+
+    service = IdentityService(db)
+
+    return await service.get_history(
         current_user.user_id
     )
