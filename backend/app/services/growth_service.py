@@ -20,13 +20,11 @@ from app.models.growth import (
     GrowthItem,
     AIExplanation,
     Feedback,
-    NextAction,
 )
 from app.schemas.feedback import (
     FeedbackRequest,
     FeedbackResponse,
 )
-from app.models.analysis import Recommendation
 from app.repositories.pattern_repository import PatternRepository
 from app.schemas.growth_current import (
     GrowthCurrentItemResponse,
@@ -275,11 +273,6 @@ class GrowthService:
             created_items,
         )
 
-        await self._persist_recommendations(
-            growth_result,
-            pattern_id,
-        )
-
         await self._persist_feedback(
             growth_result,
             growth_analysis,
@@ -368,42 +361,7 @@ class GrowthService:
                 )
             )
 
-    async def _persist_recommendations(
-        self,
-        growth_result: GrowthResult,
-        pattern_id: int,
-    ) -> None:
 
-        if not growth_result.recommendations:
-            return
-
-        for recommendation_data in growth_result.recommendations:
-            recommendation = Recommendation(
-                pattern_id=pattern_id,
-                title=recommendation_data.get("title", "추천 활동"),
-                description=recommendation_data.get("description", ""),
-                priority=int(
-                    recommendation_data.get("priority", 1)
-                ),
-            )
-
-            saved_recommendation = await self.pattern_repository.create_recommendation(
-                recommendation
-            )
-
-            if recommendation_data.get("next_actions"):
-                for action_data in recommendation_data["next_actions"]:
-                    await self.growth_repository.create_next_action(
-                        NextAction(
-                            user_id=int(
-                                action_data.get("user_id", 0)
-                            ),
-                            recommendation_id=saved_recommendation.recommendation_id,
-                            title=action_data.get("title", "다음 행동"),
-                            description=action_data.get("description", ""),
-                            status=action_data.get("status", "WAITING"),
-                        )
-                    )
 
     async def _persist_feedback(
         self,

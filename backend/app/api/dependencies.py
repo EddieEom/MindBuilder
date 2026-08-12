@@ -11,6 +11,11 @@ from app.services.dashboard_service import DashboardService
 from app.services.growth_service import GrowthService
 from app.repositories.growth_repository import GrowthRepository
 from app.repositories.pattern_repository import PatternRepository
+from app.ai.llm.client import LLMClient
+from app.ai.recommendation.engine import RecommendationEngine
+from app.ai.recommendation.repository import RecommendationRepository
+from app.ai.recommendation.service import RecommendationService
+
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login"
@@ -72,4 +77,23 @@ def get_growth_service(
     return GrowthService(
         growth_repository=GrowthRepository(db),
         pattern_repository=PatternRepository(db),
+    )
+
+
+def get_llm_client() -> LLMClient:
+    from app.ai.llm.client import LLMClient
+    return LLMClient()
+
+
+def get_recommendation_service(
+    db: AsyncSession = Depends(get_db),
+) -> RecommendationService:
+    repository = RecommendationRepository(db)
+    engine = RecommendationEngine(
+        llm=LLMClient(),
+    )
+
+    return RecommendationService(
+        engine=engine,
+        repository=repository,
     )
