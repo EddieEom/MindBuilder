@@ -4,13 +4,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import decode_access_token
+
 from app.repositories.user_repository import UserRepository
-from app.services.archive_service import ArchiveService
 from app.repositories.dashboard_repository import DashboardRepository
-from app.services.dashboard_service import DashboardService
-from app.services.growth_service import GrowthService
 from app.repositories.growth_repository import GrowthRepository
 from app.repositories.pattern_repository import PatternRepository
+from app.repositories.identity_repository import IdentityRepository
+from app.repositories.life_map_repository import LifeMapRepository
+
+from app.services.archive_service import ArchiveService
+from app.services.dashboard_service import DashboardService
+from app.services.growth_service import GrowthService
+
 from app.ai.llm.client import LLMClient
 from app.ai.recommendation.engine import RecommendationEngine
 from app.ai.recommendation.repository import RecommendationRepository
@@ -21,6 +26,10 @@ oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login"
 )
 
+
+# ==========================================================
+# Authentication
+# ==========================================================
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -37,7 +46,9 @@ async def get_current_user(
 
     repository = UserRepository(db)
 
-    user = await repository.get_by_id(int(user_id))
+    user = await repository.get_by_id(
+        int(user_id)
+    )
 
     if user is None:
         raise HTTPException(
@@ -48,16 +59,29 @@ async def get_current_user(
     return user
 
 
+# ==========================================================
+# Archive
+# ==========================================================
+
 def get_archive_service(
     db: AsyncSession = Depends(get_db),
 ) -> ArchiveService:
-    from app.services.archive_service import ArchiveService
-    return ArchiveService(db=db)
 
+    from app.services.archive_service import ArchiveService
+
+    return ArchiveService(
+        db=db
+    )
+
+
+# ==========================================================
+# Dashboard
+# ==========================================================
 
 def get_dashboard_repository(
     db: AsyncSession = Depends(get_db),
 ) -> DashboardRepository:
+
     return DashboardRepository(db)
 
 
@@ -66,9 +90,15 @@ def get_dashboard_service(
         get_dashboard_repository
     ),
 ) -> DashboardService:
+
     return DashboardService(
         dashboard_repository=dashboard_repository,
     )
+
+
+# ==========================================================
+# Growth
+# ==========================================================
 
 def get_growth_service(
     db: AsyncSession = Depends(get_db),
@@ -80,20 +110,57 @@ def get_growth_service(
     )
 
 
+# ==========================================================
+# LLM
+# ==========================================================
+
 def get_llm_client() -> LLMClient:
-    from app.ai.llm.client import LLMClient
+
     return LLMClient()
 
 
+# ==========================================================
+# Recommendation
+# ==========================================================
+
 def get_recommendation_service(
     db: AsyncSession = Depends(get_db),
+    llm_client: LLMClient = Depends(
+        get_llm_client
+    ),
 ) -> RecommendationService:
-    repository = RecommendationRepository(db)
-    engine = RecommendationEngine(
-        llm=LLMClient(),
+
+    recommendation_repository = (
+        RecommendationRepository(db)
+    )
+
+    pattern_repository = (
+        PatternRepository(db)
+    )
+
+    growth_repository = (
+        GrowthRepository(db)
+    )
+
+    identity_repository = (
+        IdentityRepository(db)
+    )
+
+    life_map_repository = (
+        LifeMapRepository(db)
+    )
+
+    recommendation_engine = (
+        RecommendationEngine(
+            llm=llm_client
+        )
     )
 
     return RecommendationService(
-        engine=engine,
-        repository=repository,
+        engine=recommendation_engine,
+        repository=recommendation_repository,
+        pattern_repository=pattern_repository,
+        growth_repository=growth_repository,
+        identity_repository=identity_repository,
+        life_map_repository=life_map_repository,
     )

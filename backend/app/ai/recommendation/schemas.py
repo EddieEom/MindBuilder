@@ -1,5 +1,4 @@
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field
 
 class NextActionSchema(BaseModel):
 
@@ -16,11 +15,19 @@ class RecommendationSchema(BaseModel):
 
     priority: int
 
-    actions: list[NextActionSchema]
+    actions: list[NextActionSchema] = Field(
+        min_length=2,
+        max_length=2,
+    )
 
 
 class RecommendationOutputSchema(BaseModel):
 
-    recommendations: list[RecommendationSchema]
+    recommendations: list[RecommendationSchema] = Field(
+        min_length=3,
+        max_length=3,
+    )
 
     confidence: float
+
+    

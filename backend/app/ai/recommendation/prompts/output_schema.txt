@@ -1,98 +1,121 @@
 Return ONLY valid JSON.
 
-The output MUST strictly follow this schema.
+The response MUST be a single JSON object.
 
-Do NOT add extra keys.
-
-Do NOT omit required keys.
-
-Do NOT output markdown.
-
-Do NOT output explanations.
-
-Schema
+Required structure:
 
 {
-    "recommendations":[
+    "recommendations": [
         {
-            "title":"string",
-
-            "description":"string",
-
-            "priority":1,
-
-            "actions":[
+            "title": "실제 추천 제목",
+            "description": "실제 추천 설명",
+            "priority": 1,
+            "actions": [
                 {
-                    "title":"string",
-
-                    "description":"string"
+                    "title": "실제 실행 행동",
+                    "description": "실제 행동 설명"
                 }
             ]
         }
     ],
-
-    "confidence":0.95
+    "confidence": 0.0
 }
 
-Rules
+OUTPUT REQUIREMENTS
 
 recommendations
 
-• array
+- Must be an array.
+- May contain zero or more recommendations.
+- Every recommendation MUST be based on the supplied Pattern, Growth, Identity, and LifeMap analyses.
+- Do NOT copy this structure literally.
+- Replace every example value with actual generated Korean content.
 
-• may be empty
+title
+
+- Must contain the actual Korean recommendation.
+- Must NOT be "string".
+- Must NOT be empty.
+- Must NOT be a placeholder.
+- Must be concise.
+
+description
+
+- Must contain the actual Korean explanation of the recommendation.
+- Must be exactly one concrete sentence.
+- Must NOT be "string".
+- Must NOT be empty.
+- Must NOT be a placeholder.
 
 priority
 
-Allowed values
-
-1
-
-2
-
-3
+- Must be an integer.
+- Allowed values are only 1, 2, or 3.
 
 actions
 
-Minimum
+- Must contain between 1 and 3 actions.
+- Every action MUST be concrete and executable.
+- Every action MUST represent the smallest meaningful step toward the recommendation.
 
-1
+action.title
 
-Maximum
+- Must contain actual Korean content.
+- Must NOT be "string".
+- Must NOT be empty.
+- Must NOT be a placeholder.
 
-3
+action.description
+
+- Must explain the concrete action.
+- Must contain actual Korean content.
+- Must NOT be "string".
+- Must NOT be empty.
+- Must NOT be a placeholder.
 
 confidence
 
-Range
+- Must be a number between 0.0 and 1.0.
+- Do NOT always output 1.0.
+- Reflect how strongly the recommendations match Growth, Identity, LifeMap, and Pattern.
 
-0.0 ~ 1.0
+PLACEHOLDER PROHIBITION
 
-Examples
+Never output the literal value:
 
-Valid
+"string"
 
-0.92
+Never output:
 
-0.74
+"example"
 
-0.61
+"test"
 
-Invalid
+"<title>"
 
-92
+"<description>"
 
-95%
+"<action>"
 
-high
+"<value>"
 
-low
-
-If recommendations are empty
-
-still return
+If the evidence is insufficient to create a grounded recommendation, return:
 
 {
-    "recommendations":[],
-    "confidence":0.0
+    "recommendations": [],
+    "confidence": 0.0
 }
+
+FINAL OUTPUT RULE
+
+Return ONLY the JSON object.
+
+Do NOT output Markdown.
+
+Do NOT output explanations.
+
+Do NOT output reasoning.
+
+Do NOT output comments.
+
+Do NOT output any text before or after the JSON object.

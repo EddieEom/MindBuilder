@@ -127,18 +127,6 @@ class DashboardService:
                     if next_action
                     else ""
                 ),
-
-                action_type=(
-                    next_action.action_type
-                    if next_action
-                    else None
-                ),
-
-                action_url=(
-                    next_action.action_url
-                    if next_action
-                    else None
-                ),
             ),
 
             recent_changes=recent_changes,

@@ -6,7 +6,7 @@ from app.repositories.life_map_repository import LifeMapRepository
 from app.repositories.growth_repository import GrowthRepository
 from app.repositories.operating_system_repository import OperatingSystemRepository
 from app.repositories.scan_repository import ScanRepository
-
+from datetime import date
 
 class ArchiveService:
 
@@ -327,7 +327,7 @@ class ArchiveService:
     async def get_archive_calendar(
         self,
         user_id: int,
-        date: str,
+        date: date,
     ):
         return await self.archive_repository.get_events_by_date(
             user_id=user_id,

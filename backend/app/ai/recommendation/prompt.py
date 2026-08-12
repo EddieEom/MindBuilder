@@ -54,8 +54,27 @@ Rules
 - Do NOT invent facts.
 - Do NOT repeat the analysis.
 - Produce practical recommendations.
-- Produce 1~3 next actions for each recommendation.
+- Produce exactly 3 recommendations.
+- Produce exactly 2 next actions for each recommendation.
+- NEVER produce a third next action.
+- NEVER produce more than 3 recommendations.
 - Return ONLY valid JSON.
+- Every text field MUST contain actual Korean content.
+- NEVER output placeholder values such as "string", "example", or "test".
+- If the evidence is insufficient, return an empty recommendations array with confidence 0.0.
+
+OUTPUT COUNT CONSTRAINTS
+
+- The "recommendations" array MUST contain exactly 3 items.
+- Each recommendation MUST contain exactly 2 actions.
+- Never generate a third action.
+- Never generate a fourth recommendation.
+- Do not generate any additional fields.
+- Every recommendation MUST have exactly:
+  title, description, priority, actions.
+- Every action MUST have exactly:
+  title, description.
+- Stop after completing the second action of the third recommendation.
 """
 
 

@@ -115,6 +115,52 @@ Step 5
 Generate recommendations.
 
 ------------------------------------------------------------
+Recommendation Generation Requirement
+------------------------------------------------------------
+
+The output MUST contain actual recommendations generated from
+the supplied analysis results.
+
+Do NOT treat the output schema values as literal values.
+
+The JSON structure shown in the output contract is only a format definition.
+
+For example:
+
+"title": "실제 추천 제목"
+
+does NOT mean the title should be "실제 추천 제목".
+
+It means the title field MUST contain a real recommendation derived
+from the supplied analyses.
+
+The same rule applies to:
+
+• description
+• action title
+• action description
+• confidence
+
+Every generated text field must contain meaningful Korean content.
+
+Never return placeholder values.
+
+Never return "string".
+
+Never copy example values from the output contract.
+
+Before generating each recommendation, verify internally:
+
+1. What Growth issue does this recommendation address?
+2. Why is it compatible with Identity?
+3. How does it support LifeMap?
+4. How does Pattern affect the recommendation style?
+5. What is the smallest executable next action?
+
+If these questions cannot be answered from the supplied data,
+do not generate the recommendation.
+
+------------------------------------------------------------
 Recommendation Rules
 ------------------------------------------------------------
 

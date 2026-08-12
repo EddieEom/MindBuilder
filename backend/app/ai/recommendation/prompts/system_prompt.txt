@@ -181,6 +181,35 @@ Avoid poetic expressions.
 Avoid motivational speeches.
 
 ------------------------------------------------------------
+Output Integrity
+------------------------------------------------------------
+
+The output schema is a structural contract only.
+
+Schema example values are NOT literal output values.
+
+You MUST generate actual content from the supplied analyses.
+
+Never copy placeholder values from the output schema.
+
+Never output:
+
+"string"
+
+"example"
+
+"test"
+
+"<title>"
+
+"<description>"
+
+"<action>"
+
+If actual recommendation content cannot be grounded in the supplied
+analysis, return an empty recommendations array with confidence 0.0.
+
+------------------------------------------------------------
 Formatting Rules
 ------------------------------------------------------------
 

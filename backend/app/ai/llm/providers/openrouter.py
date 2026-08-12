@@ -1,3 +1,4 @@
+from openai.types.realtime import conversation_item_input_audio_transcription_failed_event
 import time
 
 from openai import (
@@ -30,35 +31,22 @@ class OpenRouterProvider(BaseLLMProvider):
     def __init__(self) -> None:
 
         self.client = AsyncOpenAI(
-
             api_key=OPENROUTER_API_KEY,
-
             base_url=OPENROUTER_BASE_URL,
-
             default_headers={
-
                 "X-Title": "MindBuilder",
-
             },
-
         )
 
     async def generate(
-
         self,
-
         *,
-
         system: str,
-
         user: str,
-
         profile: str,
-
     ) -> str:
 
         if profile not in LLM_PROFILES:
-
             raise ValueError(
                 f"Unknown profile : {profile}"
             )
@@ -72,39 +60,74 @@ class OpenRouterProvider(BaseLLMProvider):
                 model=MODEL_NAME,
 
                 messages=[
-
                     {
-
                         "role": "system",
-
                         "content": system,
-
                     },
-
                     {
-
                         "role": "user",
-
                         "content": user,
-
                     },
-
                 ],
 
                 temperature=config["temperature"],
-
                 top_p=config["top_p"],
-
                 max_tokens=config["max_tokens"],
-
             )
 
-            raw_text = response.choices[0].message.content
+            # ==================================================
+            # Response Diagnostics
+            # ==================================================
 
-            if raw_text is None:
+            if not response.choices:
+                raise InferenceError(
+                    "LLM returned no choices."
+                )
+
+            choice = response.choices[0]
+
+            message = choice.message
+
+            finish_reason = getattr(
+                choice,
+                "finish_reason",
+                None,
+            )
+
+            print("\n========== OPENROUTER RESPONSE DEBUG ==========")
+            print("finish_reason:", finish_reason)
+            print("model:", MODEL_NAME)
+            print("profile:", profile)
+            print("max_tokens:", config["max_tokens"])
+            print("content_length:", len(message.content or ""))
+            print("================================================\n")
+
+            
+            if message is None:
+                raise InferenceError(
+                    "LLM returned no message."
+                )
+
+            raw_text = message.content
+
+            if raw_text is None or not raw_text.strip():
+
+                finish_reason = getattr(
+                    choice,
+                    "finish_reason",
+                    None,
+                )
+
+                reasoning_content = getattr(
+                    message,
+                    "reasoning_content",
+                    None,
+                )
 
                 raise InferenceError(
-                    "LLM returned empty response."
+                    "LLM returned empty content. "
+                    f"finish_reason={finish_reason}, "
+                    f"has_reasoning={bool(reasoning_content)}"
                 )
 
             return raw_text
@@ -132,6 +155,10 @@ class OpenRouterProvider(BaseLLMProvider):
             raise ProviderError(
                 str(e)
             ) from e
+
+        except InferenceError:
+
+            raise
 
         except Exception as e:
 

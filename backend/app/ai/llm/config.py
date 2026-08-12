@@ -48,11 +48,11 @@ LLM_PROFILES = {
 
     "recommendation": {
 
-        "temperature": 0.4,
+        "temperature": 0.3,
 
         "top_p": 0.9,
 
-        "max_tokens": 1800,
+        "max_tokens": 2400,
 
     },
 

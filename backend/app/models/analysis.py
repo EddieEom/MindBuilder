@@ -111,6 +111,12 @@ class PatternAnalysis(Base):
         cascade="all, delete-orphan",
     )
 
+    recommendation_generations = relationship(
+        "RecommendationGeneration",
+        back_populates="pattern_analysis",
+        cascade="all, delete-orphan",
+    )
+
     growth_analysis = relationship(
         "GrowthAnalysis",
         back_populates="pattern_analysis",
@@ -191,6 +197,16 @@ class Recommendation(Base):
         autoincrement=True,
     )
 
+    generation_id: Mapped[int] = mapped_column(
+        BIGINT,
+        ForeignKey(
+            "recommendation_generations.generation_id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
     pattern_id: Mapped[int] = mapped_column(
         BIGINT,
         ForeignKey("pattern_analysis.pattern_id"),
@@ -238,6 +254,11 @@ class Recommendation(Base):
         "NextAction",
         back_populates="recommendation",
         cascade="all, delete-orphan",
+    )
+
+    generation = relationship(
+        "RecommendationGeneration",
+        back_populates="recommendations",
     )
 
 class DataConfidence(Base):
@@ -289,4 +310,55 @@ class DataConfidence(Base):
     user = relationship(
         "User",
         back_populates="data_confidence",
+    )
+
+
+class RecommendationGeneration(Base):
+    __tablename__ = "recommendation_generations"
+
+    generation_id: Mapped[int] = mapped_column(
+        BIGINT,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    pattern_id: Mapped[int] = mapped_column(
+        BIGINT,
+        ForeignKey(
+            "pattern_analysis.pattern_id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    confidence: Mapped[float] = mapped_column(
+        DECIMAL(5, 2),
+        nullable=False,
+    )
+
+    version: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP,
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    # =========================
+    # Relationships
+    # =========================
+
+    pattern_analysis = relationship(
+        "PatternAnalysis",
+        back_populates="recommendation_generations",
+    )
+
+    recommendations = relationship(
+        "Recommendation",
+        back_populates="generation",
+        cascade="all, delete-orphan",
     )
