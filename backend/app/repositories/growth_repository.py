@@ -12,8 +12,8 @@ from app.models.growth import (
     Feedback,
     NextAction,
 )
-from app.models.analysis import Recommendation
 from app.models.analysis import (
+    RecommendationGeneration,
     Recommendation,
     PatternAnalysis,
 )
@@ -52,6 +52,28 @@ class GrowthRepository:
         result = await self.db.execute(stmt)
 
         return list(result.scalars().all())
+
+    async def create_recommendation_generation(
+        self,
+        generation: RecommendationGeneration,
+    ) -> RecommendationGeneration:
+        self.db.add(generation)
+
+        await self.db.flush()
+        await self.db.refresh(generation)
+
+        return generation
+
+    async def create_recommendation(
+        self,
+        recommendation: Recommendation,
+    ) -> Recommendation:
+        self.db.add(recommendation)
+
+        await self.db.flush()
+        await self.db.refresh(recommendation)
+
+        return recommendation
 
     # ======================================================
     # Growth Analysis

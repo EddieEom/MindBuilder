@@ -9,6 +9,13 @@ class Token(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
 
+# ======================================================
+# Refresh Token
+# ======================================================
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
 # 2. 회원가입/로그인 요청 모델
 class UserCreate(BaseModel):
     email: EmailStr

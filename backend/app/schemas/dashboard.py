@@ -3,18 +3,18 @@ from pydantic import BaseModel, Field
 
 
 class DashboardHumanOSResponse(BaseModel):
-    stage: str
-    confidence: float
-    version: str
+    stage: str | None = None
+    confidence: float | None = None
+    version: str | None = None
 
 
 class DashboardInsightResponse(BaseModel):
-    title: str
-    content: str
+    title: str | None = None
+    content: str | None = None
 
 
 class DashboardNextActionResponse(BaseModel):
-    title: str
+    title: str | None = None
     action_type: str | None = None
     action_url: str | None = None
 
@@ -22,7 +22,7 @@ class DashboardNextActionResponse(BaseModel):
 class DashboardChangeItemResponse(BaseModel):
     metric: str
     value: float
-    change: float
+    change: float | None = None
 
 
 class DashboardArchiveResponse(BaseModel):
@@ -34,11 +34,11 @@ class DashboardArchiveResponse(BaseModel):
 
 class DashboardResponse(BaseModel):
 
-    human_os: DashboardHumanOSResponse
+    human_os: DashboardHumanOSResponse | None = None
 
-    insight: DashboardInsightResponse
+    insight: DashboardInsightResponse | None = None
 
-    next_action: DashboardNextActionResponse
+    next_action: DashboardNextActionResponse | None = None
 
     recent_changes: list[DashboardChangeItemResponse] = Field(
         default_factory=list

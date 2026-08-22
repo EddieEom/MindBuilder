@@ -20,6 +20,11 @@ from app.models.growth import (
     GrowthItem,
     AIExplanation,
     Feedback,
+    NextAction,
+)
+from app.models.analysis import (
+    Recommendation,
+    RecommendationGeneration,
 )
 from app.schemas.feedback import (
     FeedbackRequest,
@@ -190,6 +195,7 @@ class GrowthService:
 
     async def analyze(
         self,
+        user_id: int,
         feature_result: FeatureResult,
         pattern_id: int,
     ):
@@ -204,6 +210,16 @@ class GrowthService:
             self.growth_engine.analyze(
                 evidence_map
             )
+        )
+
+        growth_confidence = self._calculate_growth_confidence(
+            feature_result,
+            growth_result,
+        )
+
+        growth_result.metadata.setdefault(
+            "confidence",
+            growth_confidence,
         )
 
         growth_analysis = GrowthAnalysis(
@@ -278,6 +294,13 @@ class GrowthService:
             growth_analysis,
         )
 
+        await self._persist_recommendations(
+            user_id=user_id,
+            pattern_id=pattern_id,
+            confidence=float(growth_analysis.confidence),
+            growth_result=growth_result,
+        )
+
         # Ensure confidence fields exist for Pydantic validation
         def _ensure_confidence(item):
             if not item:
@@ -318,6 +341,86 @@ class GrowthService:
             metadata=growth_result.metadata,
             warnings=growth_result.warnings,
         )
+
+    def _calculate_growth_confidence(
+        self,
+        feature_result: FeatureResult,
+        growth_result: GrowthResult,
+    ) -> float:
+        item_confidences = [
+            float(item.get("confidence", 0.0))
+            for item in (
+                growth_result.unlearning,
+                growth_result.relearning,
+                growth_result.newlearning,
+            )
+            if item is not None
+        ]
+
+        if item_confidences:
+            return round(
+                sum(item_confidences)
+                /
+                len(item_confidences),
+                2,
+            )
+
+        return float(feature_result.confidence_score)
+
+    async def _persist_recommendations(
+        self,
+        user_id: int,
+        pattern_id: int,
+        confidence: float,
+        growth_result: GrowthResult,
+    ) -> None:
+        if not growth_result.recommendations:
+            return
+
+        generation = await self.growth_repository.create_recommendation_generation(
+            RecommendationGeneration(
+                pattern_id=pattern_id,
+                confidence=confidence,
+                version=str(
+                    growth_result.metadata.get(
+                        "engine_version",
+                        "growth_rule_v1",
+                    )
+                ),
+            )
+        )
+
+        for recommendation_data in growth_result.recommendations:
+            recommendation = await self.growth_repository.create_recommendation(
+                Recommendation(
+                    generation_id=generation.generation_id,
+                    pattern_id=pattern_id,
+                    title=recommendation_data.get(
+                        "title",
+                        "성장 제안",
+                    ),
+                    description=recommendation_data.get(
+                        "description"
+                    ),
+                    priority=int(
+                        recommendation_data.get(
+                            "priority",
+                            1,
+                        )
+                    ),
+                    status="WAITING",
+                )
+            )
+
+            await self.growth_repository.create_next_action(
+                NextAction(
+                    user_id=user_id,
+                    recommendation_id=recommendation.recommendation_id,
+                    title=recommendation.title,
+                    description=recommendation.description,
+                    status="WAITING",
+                )
+            )
 
     async def _persist_explanations(
         self,

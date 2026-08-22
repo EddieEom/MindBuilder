@@ -6,10 +6,7 @@ from app.ai.feature_extractor.feature_result import (
     FeatureResult,
 )
 
-from app.models.analysis import (
-    Insight,
-    Recommendation,
-)
+from app.models.analysis import Insight
 
 
 class PatternAnalysisService:
@@ -56,7 +53,7 @@ class PatternAnalysisService:
                 result=result,
             )
 
-            await self._persist_insights_and_recommendations(
+            await self._persist_insights(
                 pattern,
                 result,
             )
@@ -73,7 +70,7 @@ class PatternAnalysisService:
 
             raise
 
-    async def _persist_insights_and_recommendations(
+    async def _persist_insights(
         self,
         pattern,
         result: FeatureResult,
@@ -95,26 +92,3 @@ class PatternAnalysisService:
                     priority=priority,
                 )
             )
-
-            growth_candidates = raw_pattern.get(
-                "growth_candidates",
-                [],
-            )
-
-            if growth_candidates:
-                description = (
-                    "성장 후보: "
-                    + ", ".join(
-                        str(c)
-                        for c in growth_candidates
-                    )
-                )
-
-                await self.pattern_repository.create_recommendation(
-                    Recommendation(
-                        pattern_id=pattern.pattern_id,
-                        title=f"{title} 성장 제안",
-                        description=description,
-                        priority=priority,
-                    )
-                )

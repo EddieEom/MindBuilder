@@ -110,7 +110,7 @@ class ArchiveService:
     ):
         await self.archive_repository.create_event(
             user_id=user_id,
-            event_type="SCAN",
+            event_type="SCAN_COMPLETED",
             reference_id=scan_id,
             title="Mind Scan",
             summary=self._build_scan_summary(),
@@ -127,7 +127,7 @@ class ArchiveService:
 
         await self.archive_repository.create_event(
             user_id=user_id,
-            event_type="PATTERN",
+            event_type="PATTERN_ANALYZED",
             reference_id=pattern_id,
             title="Pattern 분석 결과",
             summary=summary,
@@ -156,7 +156,7 @@ class ArchiveService:
 
         await self.archive_repository.create_event(
             user_id=user_id,
-            event_type="GROWTH",
+            event_type="GROWTH_ANALYZED",
             reference_id=growth_analysis_id,
             title="Growth 분석 결과",
             summary=summary,
@@ -172,7 +172,7 @@ class ArchiveService:
 
         await self.archive_repository.create_event(
             user_id=user_id,
-            event_type="IDENTITY",
+            event_type="IDENTITY_CREATED",
             reference_id=identity_id,
             title=title,
             summary=summary,
@@ -188,7 +188,7 @@ class ArchiveService:
 
         await self.archive_repository.create_event(
             user_id=user_id,
-            event_type="LIFEMAP",
+            event_type="LIFEMAP_CREATED",
             reference_id=life_map_id,
             title="LifeMap 업데이트",
             summary=summary,
@@ -204,7 +204,7 @@ class ArchiveService:
 
         await self.archive_repository.create_event(
             user_id=user_id,
-            event_type="OS",
+            event_type="OS_UPDATED",
             reference_id=os_id,
             title="Human Operating System 업데이트",
             summary=summary,
@@ -341,6 +341,6 @@ class ArchiveService:
     ):
         return await self.archive_repository.get_events_by_type(
             user_id=user_id,
-            event_type="GROWTH",
+            event_type="GROWTH_ANALYZED",
             limit=limit,
         )

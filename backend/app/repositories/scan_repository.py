@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan import Scan
@@ -79,3 +79,26 @@ class ScanRepository:
         result = await self.db.execute(stmt)
 
         return result.scalar_one_or_none()
+
+    async def count_completed_scans(
+        self,
+        user_id: int,
+        scan_type: str | None = None,
+    ) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(Scan)
+            .where(
+                Scan.user_id == user_id,
+                Scan.status == "COMPLETED",
+            )
+        )
+
+        if scan_type is not None:
+            stmt = stmt.where(
+                Scan.scan_type == scan_type
+            )
+
+        result = await self.db.execute(stmt)
+
+        return int(result.scalar_one() or 0)

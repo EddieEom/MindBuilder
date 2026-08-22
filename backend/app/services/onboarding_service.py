@@ -19,6 +19,9 @@ from app.services.growth_service import GrowthService
 from app.services.identity_service import (
     IdentityService,
 )
+from app.services.seed_initialization_service import (
+    SeedInitializationService,
+)
 
 class OnboardingService:
     """
@@ -43,6 +46,7 @@ class OnboardingService:
         pattern_analysis_service: Optional[PatternAnalysisService] = None,
         growth_service: Optional[GrowthService] = None,
         identity_service: Optional[IdentityService] = None,
+        seed_initialization_service: Optional[SeedInitializationService] = None,
         
     ):
 
@@ -60,6 +64,10 @@ class OnboardingService:
 
         self.identity_service = (
             identity_service
+        )
+
+        self.seed_initialization_service = (
+            seed_initialization_service
         )
 
     async def get_onboarding_questions(self) -> QuestionSetResponse:
@@ -173,7 +181,20 @@ class OnboardingService:
         if self.identity_service is None:
             raise RuntimeError("IdentityService is not initialized.")
 
+        if self.seed_initialization_service is None:
+            raise RuntimeError("SeedInitializationService is not initialized.")
+
         try:
+            scan = await self.scan_repository.get_by_id(request.scan_id)
+
+            if scan is None:
+                raise ValueError("존재하지 않는 Scan입니다.")
+
+            if scan.status == "COMPLETED":
+                raise ValueError("이미 완료된 Scan입니다.")
+            
+            if scan.user_id != current_user.user_id:
+                raise PermissionError("해당 Scan에 접근할 권한이 없습니다.")
 
             for answer in request.answers:
 
@@ -192,20 +213,6 @@ class OnboardingService:
                         detail_text=answer.detail_text,
                     )
 
-            scan = await self.scan_repository.get_by_id(request.scan_id)
-
-            if scan is None:
-                raise ValueError("존재하지 않는 Scan입니다.")
-
-            if scan.status == "COMPLETED":
-                raise ValueError("이미 완료된 Scan입니다.")
-            
-            if scan.user_id != current_user.user_id:
-                raise PermissionError("해당 Scan에 접근할 권한이 없습니다.")
-
-            for answer in request.answers:
-                ...
-
             await self.scan_repository.update_completed_scan(scan)
 
             await self.answer_repository.commit()
@@ -218,8 +225,9 @@ class OnboardingService:
 
             growth_result = (
                 await self.growth_service.analyze(
-                    feature_result,
-                    feature_result.metadata["pattern_id"],
+                    user_id=current_user.user_id,
+                    feature_result=feature_result,
+                    pattern_id=feature_result.metadata["pattern_id"],
                 )
             )
 
@@ -230,6 +238,14 @@ class OnboardingService:
                     growth_result=growth_result,
                 )
             )
+
+            seed_result = await self.seed_initialization_service.initialize_seed(
+                user_id=current_user.user_id,
+                scan_id=scan.scan_id,
+                feature_result=feature_result,
+            )
+
+            feature_result.metadata["seed"] = seed_result.to_dict()
 
             return PatternAnalysisResponse(
 

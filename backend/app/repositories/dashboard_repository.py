@@ -165,6 +165,32 @@ class DashboardRepository:
 
         return result.scalar_one_or_none()
 
+    async def get_recent_patterns(
+        self,
+        user_id: int,
+        limit: int = 2,
+    ) -> list[PatternAnalysis]:
+
+        stmt = (
+            select(PatternAnalysis)
+            .join(
+                Scan,
+                PatternAnalysis.scan_id == Scan.scan_id,
+            )
+            .where(
+                Scan.user_id == user_id
+            )
+            .order_by(
+                PatternAnalysis.created_at.desc(),
+                PatternAnalysis.pattern_id.desc(),
+            )
+            .limit(limit)
+        )
+
+        result = await self.session.execute(stmt)
+
+        return list(result.scalars().all())
+
     # =====================================================
     # Recent Archives
     # =====================================================

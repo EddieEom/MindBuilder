@@ -89,9 +89,12 @@ async def analyze_growth(
     pattern_id = int(feature_result.metadata.get("pattern_id", 0))
 
     growth_response = await growth_service.analyze(
+        user_id=current_user.user_id,
         feature_result=feature_result,
         pattern_id=pattern_id,
     )
+
+    await growth_repo.commit()
 
     return growth_response
 

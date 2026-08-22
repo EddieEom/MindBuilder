@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.scan import Answer, AnswerDetail
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 class AnswerRepository:
@@ -140,3 +140,43 @@ class AnswerRepository:
         result = await self.db.execute(stmt)
 
         return result.scalar_one_or_none() is not None
+
+    async def count_distinct_questions_by_scan_id(
+        self,
+        scan_id: int,
+    ) -> int:
+        stmt = (
+            select(
+                func.count(
+                    func.distinct(Answer.question_id)
+                )
+            )
+            .where(
+                Answer.scan_id == scan_id
+            )
+        )
+
+        result = await self.db.execute(stmt)
+
+        return int(result.scalar_one() or 0)
+
+    async def count_details_by_scan_id(
+        self,
+        scan_id: int,
+    ) -> int:
+        stmt = (
+            select(
+                func.count(AnswerDetail.detail_id)
+            )
+            .join(
+                Answer,
+                AnswerDetail.answer_id == Answer.answer_id,
+            )
+            .where(
+                Answer.scan_id == scan_id
+            )
+        )
+
+        result = await self.db.execute(stmt)
+
+        return int(result.scalar_one() or 0)

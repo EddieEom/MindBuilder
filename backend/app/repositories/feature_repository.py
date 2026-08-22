@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select
 
 from app.models.scan import FeatureValue
 
@@ -53,6 +54,23 @@ class FeatureRepository:
         await self.db.flush()
 
         return feature_values
+
+    async def count_by_scan_id(
+        self,
+        scan_id: int,
+    ) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(FeatureValue)
+            .where(
+                FeatureValue.scan_id == scan_id,
+                FeatureValue.feature_value != 0,
+            )
+        )
+
+        result = await self.db.execute(stmt)
+
+        return int(result.scalar_one() or 0)
 
     # ======================================================
     # Commit

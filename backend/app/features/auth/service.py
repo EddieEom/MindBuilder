@@ -3,8 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.user import User, OAuthAccount
 from app.features.auth.schemas import UserCreate, Token
-from app.core.security import create_access_token
-from datetime import timedelta
+from app.features.auth.schemas import UserCreate, Token
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
+)
 
 class AuthService:
     async def get_or_create_user(self, db: AsyncSession, user_data: UserCreate) -> User:
@@ -48,14 +52,44 @@ class AuthService:
         # 1. 유저 확보
         user = await self.get_or_create_user(db, user_data)
         
-        # 2. JWT 토큰 발급 (액세스 토큰)
+        # 2. Access Token 발급
         access_token = create_access_token(
-            data={"sub": str(user.user_id), "email": user.email}
+            data={
+                "sub": str(user.user_id),
+                "email": user.email,
+            }
         )
-        
-        # 3. 리프레시 토큰 (나중에 DB 저장 로직 추가 예정)
-        refresh_token = "refresh_token_placeholder" 
-        
-        return Token(access_token=access_token, refresh_token=refresh_token)
+
+        # 3. Refresh Token 발급
+        refresh_token = create_refresh_token(
+            data={
+                "sub": str(user.user_id),
+            }
+        )
+
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
+
+    async def refresh_access_token(
+        self,
+        refresh_token: str,
+    ) -> Token:
+        user_id = decode_refresh_token(refresh_token)
+
+        if user_id is None:
+            raise ValueError("유효하지 않거나 만료된 Refresh Token입니다.")
+
+        access_token = create_access_token(
+            data={
+                "sub": str(user_id),
+            }
+        )
+
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
 
 auth_service = AuthService()

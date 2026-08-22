@@ -296,7 +296,7 @@ class DataConfidence(Base):
         nullable=False,
     )
 
-    updated_at: Mapped[str] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
         onupdate=func.now(),

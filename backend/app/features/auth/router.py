@@ -184,3 +184,24 @@ async def delete_account(
     return await service.delete_account(
         current_user.user_id
     )
+
+@router.post(
+    "/refresh",
+    response_model=schemas.Token,
+    summary="Access Token 갱신",
+)
+async def refresh_token(
+    request: schemas.RefreshTokenRequest,
+):
+    try:
+        return await auth_service.refresh_access_token(
+            request.refresh_token
+        )
+
+    except ValueError as e:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+        )
