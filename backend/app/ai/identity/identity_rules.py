@@ -11,11 +11,12 @@ IDENTITY_RULES = [
         ),
         "score_weights": {
             "pattern": {
-                "execution_score": 0.35,
-                "creativity_score": 0.25,
+                "execution_score": 0.30,
+                "creativity_score": 0.20,
             },
-            "trend": 0.20,
-            "growth": 0.20,
+            "trend": 0.15,
+            "growth": 0.15,
+            "stable": 0.20,
         },
         "trend_metrics": [
             "execution_score",
@@ -52,12 +53,13 @@ IDENTITY_RULES = [
         ),
         "score_weights": {
             "pattern": {
-                "future_score": 0.30,
-                "creativity_score": 0.25,
+                "future_score": 0.25,
+                "creativity_score": 0.20,
                 "resilience_score": 0.05,
             },
-            "trend": 0.20,
-            "growth": 0.20,
+            "trend": 0.15,
+            "growth": 0.15,
+            "stable": 0.20,
         },
         "trend_metrics": [
             "future_score",
@@ -94,12 +96,13 @@ IDENTITY_RULES = [
         ),
         "score_weights": {
             "pattern": {
-                "creativity_score": 0.45,
-                "future_score": 0.15,
+                "creativity_score": 0.35,
+                "future_score": 0.10,
                 "execution_score": 0.10,
             },
-            "trend": 0.15,
+            "trend": 0.10,
             "growth": 0.15,
+            "stable": 0.20,
         },
         "trend_metrics": [
             "creativity_score",
@@ -135,12 +138,13 @@ IDENTITY_RULES = [
         ),
         "score_weights": {
             "pattern": {
-                "execution_score": 0.40,
-                "resilience_score": 0.20,
-                "future_score": 0.10,
+                "execution_score": 0.30,
+                "resilience_score": 0.15,
+                "future_score": 0.05,
             },
-            "trend": 0.15,
-            "growth": 0.15,
+            "trend": 0.10,
+            "growth": 0.10,
+            "stable": 0.30,
         },
         "trend_metrics": [
             "execution_score",
@@ -177,12 +181,13 @@ IDENTITY_RULES = [
         ),
         "score_weights": {
             "pattern": {
-                "future_score": 0.25,
-                "perfectionism_score": 0.25,
-                "creativity_score": 0.15,
+                "future_score": 0.20,
+                "perfectionism_score": 0.20,
+                "creativity_score": 0.10,
             },
-            "trend": 0.15,
-            "growth": 0.20,
+            "trend": 0.10,
+            "growth": 0.15,
+            "stable": 0.25,
         },
         "trend_metrics": [
             "future_score",
@@ -219,12 +224,13 @@ IDENTITY_RULES = [
         ),
         "score_weights": {
             "pattern": {
-                "future_score": 0.30,
-                "execution_score": 0.25,
-                "creativity_score": 0.15,
+                "future_score": 0.25,
+                "execution_score": 0.20,
+                "creativity_score": 0.10,
             },
-            "trend": 0.15,
-            "growth": 0.15,
+            "trend": 0.10,
+            "growth": 0.10,
+            "stable": 0.25,
         },
         "trend_metrics": [
             "future_score",

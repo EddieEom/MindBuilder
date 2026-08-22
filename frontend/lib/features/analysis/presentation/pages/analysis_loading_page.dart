@@ -1,18 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../onboarding/data/repositories/onboarding_repository.dart';
+import '../../../../core/routes/route_names.dart';
 
 class AnalysisLoadingPage extends StatefulWidget {
   final int scanId;
-
-
+  final Map<String, dynamic> analysisResult;
 
   const AnalysisLoadingPage({
     super.key,
     required this.scanId,
+    required this.analysisResult,
   });
 
   @override
@@ -28,10 +29,7 @@ class _AnalysisLoadingPageState
 
   bool _completed = false;
 
-  Map<String, dynamic>? _analysisResult;
-  
-  final OnboardingRepository _repository =
-    OnboardingRepository();
+  late final Map<String, dynamic> _analysisResult;
 
   final List<String> _steps = [
     '응답 데이터 정제',
@@ -41,9 +39,81 @@ class _AnalysisLoadingPageState
     '초기 Seed 생성',
   ];
 
+  // =========================
+  // Analysis Result Getters
+  // =========================
+
+  Map<String, dynamic> get _seedData {
+    final metadata = _analysisResult['metadata'];
+
+    if (metadata is! Map<String, dynamic>) {
+      return {};
+    }
+
+    final seed = metadata['seed'];
+
+    if (seed is! Map<String, dynamic>) {
+      return {};
+    }
+
+    return seed;
+  }
+
+  Map<String, dynamic> get _identityData {
+    final identity = _analysisResult['identity'];
+
+    if (identity is! Map<String, dynamic>) {
+      return {};
+    }
+
+    return identity;
+  }
+
+  String get _identityName {
+    return _identityData['identity_name']
+            ?.toString() ??
+        '';
+  }
+
+  String get _identityDescription {
+    return _identityData['description']
+            ?.toString() ??
+        '';
+  }
+
+  double get _dataConfidence {
+    final value =
+        _seedData['data_confidence'];
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return 0.0;
+  }
+
+  String get _seedStage {
+    return _seedData['stage']
+            ?.toString() ??
+        'Seed';
+  }
+
+  int get _scanCount {
+    final value =
+        _seedData['scan_count'];
+
+    if (value is num) {
+      return value.toInt();
+    }
+
+    return 0;
+  }
+
   @override
   void initState() {
     super.initState();
+
+    _analysisResult = widget.analysisResult;
 
     _startAnalysis();
   }
@@ -59,7 +129,6 @@ class _AnalysisLoadingPageState
       _currentStep = step;
     });
   }
-
 
   Future<void> _startAnalysis() async {
     try {
@@ -89,26 +158,6 @@ class _AnalysisLoadingPageState
         progress: 60,
         step: 2,
       );
-
-      // 실제 Pattern Analysis 호출
-      final result =
-          await _repository.analyzePattern(
-        scanId: widget.scanId,
-      );
-
-      debugPrint(
-        '===== PATTERN ANALYSIS SUCCESS =====',
-      );
-
-      debugPrint(
-        result.toString(),
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        _analysisResult = result;
-      });
 
       _updateProgress(
         progress: 80,
@@ -142,7 +191,9 @@ class _AnalysisLoadingPageState
         '===== ANALYSIS ERROR =====',
       );
 
-      debugPrint(e.toString());
+      debugPrint(
+        e.toString(),
+      );
 
       if (!mounted) return;
 
@@ -171,7 +222,6 @@ class _AnalysisLoadingPageState
                 '닫기',
               ),
             ),
-
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
@@ -187,31 +237,37 @@ class _AnalysisLoadingPageState
       },
     );
   }
-  @override
-  void dispose() {
-
-    super.dispose();
-  }
 
   @override
   Widget build(
     BuildContext context,
   ) {
     return Scaffold(
-      backgroundColor:
-          AppColors.background,
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 24,
-          ),
-          child: Center(
-            child: _completed
-                ? _buildCompleted()
-                : _buildAnalyzing(),
-          ),
+        child: LayoutBuilder(
+          builder: (
+            context,
+            constraints,
+          ) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 24,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      constraints.maxHeight - 48,
+                ),
+                child: Center(
+                  child: _completed
+                      ? _buildCompleted()
+                      : _buildAnalyzing(),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -234,7 +290,7 @@ class _AnalysisLoadingPageState
           BoxShadow(
             color:
                 Colors.black.withValues(
-              alpha : 0.05,
+              alpha: 0.05,
             ),
             blurRadius: 30,
             offset:
@@ -315,7 +371,7 @@ class _AnalysisLoadingPageState
             BoxShape.circle,
         color:
             AppColors.primary
-                .withValues(alpha : 0.05),
+                .withValues(alpha: 0.05),
       ),
       child: Stack(
         alignment:
@@ -329,13 +385,11 @@ class _AnalysisLoadingPageState
                   BoxShape.circle,
               color:
                   AppColors.primary
-                      .withValues(alpha : 0.1),
+                      .withValues(alpha: 0.1),
             ),
           ),
-
           Icon(
-            Icons
-                .hub_outlined,
+            Icons.hub_outlined,
             size: 70,
             color:
                 AppColors.primary,
@@ -372,9 +426,7 @@ class _AnalysisLoadingPageState
                 ),
               ),
             ),
-
             const SizedBox(width: 12),
-
             Text(
               '$_progress%',
               style:
@@ -427,12 +479,11 @@ class _AnalysisLoadingPageState
       status = '분석 중';
     } else {
       icon =
-          Icons
-              .radio_button_unchecked;
+          Icons.radio_button_unchecked;
 
       color =
           AppColors.textSecondary
-              .withValues(alpha : 0.4);
+              .withValues(alpha: 0.4);
 
       status = '대기';
     }
@@ -449,9 +500,7 @@ class _AnalysisLoadingPageState
             color: color,
             size: 20,
           ),
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Text(
               _steps[index],
@@ -462,17 +511,13 @@ class _AnalysisLoadingPageState
                       ?.copyWith(
                         fontWeight:
                             isCurrent
-                                ? FontWeight
-                                    .bold
-                                : FontWeight
-                                    .normal,
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                         color:
-                            AppColors
-                                .textPrimary,
+                            AppColors.textPrimary,
                       ),
             ),
           ),
-
           Text(
             status,
             style:
@@ -496,7 +541,7 @@ class _AnalysisLoadingPageState
       decoration: BoxDecoration(
         color:
             AppColors.primary
-                .withValues(alpha : 0.04),
+                .withValues(alpha: 0.04),
         borderRadius:
             BorderRadius.circular(
           14,
@@ -509,14 +554,11 @@ class _AnalysisLoadingPageState
       child: Row(
         children: [
           Icon(
-            Icons
-                .shield_outlined,
+            Icons.shield_outlined,
             color:
                 AppColors.primary,
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             child: Text(
               '모든 분석은 안전하게 처리되며\n당신의 데이터는 오직 당신을 위해 사용됩니다.',
@@ -526,8 +568,7 @@ class _AnalysisLoadingPageState
                       .bodySmall
                       ?.copyWith(
                         color:
-                            AppColors
-                                .textSecondary,
+                            AppColors.textSecondary,
                         height: 1.5,
                       ),
             ),
@@ -537,12 +578,17 @@ class _AnalysisLoadingPageState
     );
   }
 
+  // =========================
+  // Analysis Completed
+  // =========================
+
   Widget _buildCompleted() {
-  return Container(
-    width: double.infinity,
-    constraints: const BoxConstraints(
-      maxWidth: 380,
-    ),
+    return Container(
+      width: double.infinity,
+      constraints:
+          const BoxConstraints(
+        maxWidth: 380,
+      ),
       padding:
           const EdgeInsets.all(28),
       decoration: BoxDecoration(
@@ -570,10 +616,11 @@ class _AnalysisLoadingPageState
           const SizedBox(height: 28),
 
           Text(
-            identityName != null &&
-                    identityName.isNotEmpty
-                ? '$identityName Seed 생성 완료!'
+            _identityName.isNotEmpty
+                ? '$_identityName Seed 생성 완료!'
                 : '초기 Seed 생성 완료!',
+            textAlign:
+                TextAlign.center,
             style:
                 Theme.of(context)
                     .textTheme
@@ -589,43 +636,38 @@ class _AnalysisLoadingPageState
           const SizedBox(height: 14),
 
           Text(
-            identityDescription != null &&
-                    identityDescription.isNotEmpty
-                ? identityDescription
-                : primaryInsight != null &&
-                        primaryInsight.isNotEmpty
-                    ? '$primaryInsight 패턴을 기반으로\n초기 MindFrame Seed가 생성되었습니다.'
-                    : '당신만의 MindFrame OS의\n초기 Seed가 생성되었습니다.\n더 많은 데이터를 축적할수록\n더 정확한 분석을 제공할 수 있어요.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(
-                  color: AppColors.textSecondary,
-                  height: 1.6,
-                ),
+            _identityDescription.isNotEmpty
+                ? _identityDescription
+                : '당신만의 MindFrame OS의\n초기 Seed가 생성되었습니다.\n더 많은 데이터를 축적할수록\n더 정확한 분석을 제공할 수 있어요.',
+            textAlign:
+                TextAlign.center,
+            style:
+                Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(
+                      color:
+                          AppColors.textSecondary,
+                      height: 1.6,
+                    ),
           ),
 
           const SizedBox(height: 28),
 
           _buildReliabilityCard(
-            confidence: confidence,
+            confidence:
+                _dataConfidence,
           ),
 
           const SizedBox(height: 20),
 
           SizedBox(
-            width:
-                double.infinity,
+            width: double.infinity,
             height: 54,
-            child:
-                ElevatedButton(
+            child: ElevatedButton(
               onPressed: () {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/home',
-                  (route) =>
-                      false,
+                context.go(
+                  RouteNames.dashboard,
                 );
               },
               style:
@@ -643,7 +685,7 @@ class _AnalysisLoadingPageState
                 ),
               ),
               child: const Text(
-                'Home으로 이동  →',
+                'Dashboard로 이동  →',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight:
@@ -656,15 +698,14 @@ class _AnalysisLoadingPageState
           const SizedBox(height: 16),
 
           Text(
-            'ⓘ 언제든지 다시 분석할 수 있어요.',
+            '현재 $_seedStage 단계 · 누적 $_scanCount회 분석',
             style:
                 Theme.of(context)
                     .textTheme
                     .bodySmall
                     ?.copyWith(
                       color:
-                          AppColors
-                              .textSecondary,
+                          AppColors.textSecondary,
                     ),
           ),
         ],
@@ -681,12 +722,14 @@ class _AnalysisLoadingPageState
             BoxShape.circle,
         color:
             AppColors.primary
-                .withValues(alpha : 0.06),
+                .withValues(alpha: 0.06),
       ),
-      child: const Center(
+      child: Center(
         child: Icon(
           Icons.energy_savings_leaf,
           size: 70,
+          color:
+              AppColors.primary,
         ),
       ),
     );
@@ -695,6 +738,13 @@ class _AnalysisLoadingPageState
   Widget _buildReliabilityCard({
     required double confidence,
   }) {
+    final normalizedConfidence =
+        (confidence / 100)
+            .clamp(0.0, 1.0);
+
+    final confidenceText =
+        '${confidence.round()}%';
+
     return Container(
       width: double.infinity,
       padding:
@@ -725,7 +775,8 @@ class _AnalysisLoadingPageState
                   height: 80,
                   child:
                       CircularProgressIndicator(
-                    value: 0.12,
+                    value:
+                        normalizedConfidence,
                     strokeWidth: 8,
                     backgroundColor:
                         AppColors.border,
@@ -736,10 +787,9 @@ class _AnalysisLoadingPageState
                     ),
                   ),
                 ),
-
-                const Text(
-                  '12%',
-                  style: TextStyle(
+                Text(
+                  confidenceText,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight:
                         FontWeight.bold,
@@ -756,9 +806,9 @@ class _AnalysisLoadingPageState
               crossAxisAlignment:
                   CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '현재 Seed 단계입니다.',
-                  style: TextStyle(
+                Text(
+                  '현재 $_seedStage 단계입니다.',
+                  style: const TextStyle(
                     fontWeight:
                         FontWeight.w600,
                   ),
@@ -767,15 +817,16 @@ class _AnalysisLoadingPageState
                 const SizedBox(height: 6),
 
                 Text(
-                  '데이터가 축적되어 AI 분석 정확도가 향상됩니다.',
+                  '현재 분석 데이터 신뢰도는 '
+                  '${confidence.round()}%입니다.\n'
+                  '데이터가 축적될수록 더 정확한 분석을 제공합니다.',
                   style:
                       Theme.of(context)
                           .textTheme
                           .bodySmall
                           ?.copyWith(
                             color:
-                                AppColors
-                                    .textSecondary,
+                                AppColors.textSecondary,
                             height: 1.4,
                           ),
                 ),

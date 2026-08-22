@@ -16,7 +16,22 @@ class IdentityEngine:
     """
     Scores every Identity candidate from Layer2 Pattern evidence.
     """
-
+    def _determine_identity_stage(
+            self,
+            pattern_count: int,
+        ) -> str:
+    
+            if pattern_count <= 0:
+                return "Insufficient"
+    
+            if pattern_count <= 2:
+                return "Emerging"
+    
+            if pattern_count <= 5:
+                return "Provisional"
+    
+            return "Stable"
+    
     def analyze(
         self,
         evidence: dict,
@@ -31,6 +46,10 @@ class IdentityEngine:
             )
             or
             0
+        )
+
+        stage = self._determine_identity_stage(
+            pattern_count
         )
 
         for warning in evidence.get(
@@ -49,6 +68,7 @@ class IdentityEngine:
                 description=(
                     "Identity requires accumulated Layer2 Pattern data."
                 ),
+                stage=stage,
                 confidence=0.0,
             )
 
@@ -105,6 +125,9 @@ class IdentityEngine:
                 pattern_scores=pattern_scores,
                 trend_scores=trend_scores,
                 growth_score=growth_score,
+                stable_characteristics=stable_characteristics,
+                pattern_count=pattern_count,
+                stage=stage,
             )
 
             stable_matches = self._match_stable_metrics(
@@ -164,6 +187,7 @@ class IdentityEngine:
         result.set_identity(
             identity_name=primary["identity_name"],
             description=primary["description"],
+            stage=stage,
             confidence=confidence,
         )
 
@@ -334,17 +358,55 @@ class IdentityEngine:
 
         return result
 
+
+
+    
+
     def _calculate_score(
         self,
         rule: dict,
         pattern_scores: dict,
         trend_scores: dict,
         growth_score: float,
+        stable_characteristics: list[dict],
+        pattern_count: int,
+        stage: str,
     ) -> tuple[float, dict]:
 
         weights = rule.get(
             "score_weights",
             {},
+        )
+
+        stage_multipliers = {
+            "Emerging": {
+                "pattern": 1.0,
+                "trend": 0.0,
+                "growth": 0.25,
+                "stable": 0.0,
+            },
+            "Provisional": {
+                "pattern": 1.0,
+                "trend": 0.75,
+                "growth": 0.75,
+                "stable": 0.50,
+            },
+            "Stable": {
+                "pattern": 1.0,
+                "trend": 1.0,
+                "growth": 1.0,
+                "stable": 1.0,
+            },
+        }
+
+        multipliers = stage_multipliers.get(
+            stage,
+            {
+                "pattern": 0.0,
+                "trend": 0.0,
+                "growth": 0.0,
+                "stable": 0.0,
+            }
         )
 
         pattern_weights = weights.get(
@@ -369,47 +431,66 @@ class IdentityEngine:
                 metric_score
                 *
                 weight
+                *
+                multipliers["pattern"]
             )
 
             total_score += contribution
 
             pattern_components[metric] = {
                 "value": metric_score,
-                "weight": weight,
+                "weight": round(
+                    weight * multipliers["pattern"],
+                    2,
+                ),
                 "contribution": round(
                     contribution,
                     2,
                 ),
             }
 
-        trend_score = self._calculate_trend_score(
-            trend_scores=trend_scores,
-            trend_metrics=rule.get(
-                "trend_metrics",
-                [],
-            ),
-        )
-
-        trend_weight = self._to_float(
-            weights.get(
-                "trend",
-                0.0,
+        trend_weight = (
+            self._to_float(
+                weights.get(
+                    "trend",
+                    0.0,
+                )
             )
-        )
-
-        trend_contribution = (
-            trend_score
             *
-            trend_weight
+            multipliers["trend"]
         )
 
-        total_score += trend_contribution
+        if pattern_count < 3:
+            trend_score = 0.0
+            trend_contribution = 0.0
 
-        growth_weight = self._to_float(
-            weights.get(
-                "growth",
-                0.0,
+        else:
+
+            trend_score = self._calculate_trend_score(
+                trend_scores=trend_scores,
+                trend_metrics=rule.get(
+                    "trend_metrics",
+                    [],
+                ),
             )
+
+            trend_contribution = (
+                trend_score
+                *
+                trend_weight
+            )
+
+            total_score += trend_contribution
+
+        growth_weight = (
+            self._to_float(
+                weights.get(
+                    "growth",
+                    0.0,
+                )
+            )
+            *
+            multipliers["growth"]
         )
 
         bounded_growth_score = self._bounded_score(
@@ -423,6 +504,30 @@ class IdentityEngine:
         )
 
         total_score += growth_contribution
+
+        stable_weight = (
+            self._to_float(
+                weights.get(
+                    "stable",
+                    0.0,
+                )
+            )
+            *
+            multipliers["stable"]
+        )
+
+        stable_score = self._calculate_stable_score(
+            rule=rule,
+            stable_characteristics=stable_characteristics,
+        )
+
+        stable_contribution = (
+            stable_score
+            *
+            stable_weight
+        )
+
+        total_score += stable_contribution
 
         return (
             self._bounded_score(
@@ -447,6 +552,19 @@ class IdentityEngine:
                     "weight": growth_weight,
                     "contribution": round(
                         growth_contribution,
+                        2,
+                    ),
+                },
+
+                "stable": {
+                    "metrics": rule.get(
+                        "stable_metrics",
+                        [],
+                    ),
+                    "value": stable_score,
+                    "weight": stable_weight,
+                    "contribution": round(
+                        stable_contribution,
                         2,
                     ),
                 },
@@ -484,6 +602,55 @@ class IdentityEngine:
             +
             average_trend
         )
+
+
+    def _calculate_stable_score(
+        self,
+        rule: dict,
+        stable_characteristics: list[dict],
+    ) -> float:
+
+        target_metrics = set(
+            rule.get(
+                "stable_metrics",
+                [],
+            )
+        )
+
+        if not target_metrics:
+            return 0.0
+
+        matched = [
+            characteristic
+            for characteristic in stable_characteristics
+            if characteristic.get(
+                "metric"
+            )
+            in target_metrics
+        ]
+
+        if not matched:
+            return 0.0
+
+        match_ratio = (
+            len(
+                {
+                    characteristic.get(
+                        "metric"
+                    )
+                    for characteristic in matched
+                }
+            )
+            /
+            len(target_metrics)
+        )
+
+        return self._bounded_score(
+            match_ratio
+            *
+            100.0
+        )
+
 
     def _match_stable_metrics(
         self,

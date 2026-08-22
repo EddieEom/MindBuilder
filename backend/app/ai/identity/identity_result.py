@@ -8,6 +8,7 @@ class IdentityResult:
 
         self.identity_name = ""
         self.description = ""
+        self.stage = ""
         self.confidence = 0.0
 
         # ==========================================
@@ -68,11 +69,13 @@ class IdentityResult:
         self,
         identity_name: str,
         description: str,
+        stage: str,
         confidence: float,
     ) -> None:
 
         self.identity_name = identity_name
         self.description = description
+        self.stage = stage
         self.confidence = confidence
 
     # ======================================================

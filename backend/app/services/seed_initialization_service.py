@@ -3,7 +3,6 @@ from dataclasses import asdict, dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.feature_extractor.constants import FEATURE_KEYS
-from app.ai.feature_extractor.feature_result import FeatureResult
 from app.repositories.answer_repository import AnswerRepository
 from app.repositories.archive_repository import ArchiveRepository
 from app.repositories.data_confidence_repository import (
@@ -21,7 +20,8 @@ from app.services.operating_system_service import OperatingSystemService
 
 @dataclass(slots=True)
 class SeedInitializationResult:
-    initialized: bool
+    seed_exists: bool
+    created_now: bool
     stage: str
     data_confidence: float
     scan_count: int
@@ -54,7 +54,6 @@ class SeedInitializationService:
         self,
         user_id: int,
         scan_id: int,
-        feature_result: FeatureResult,
     ) -> SeedInitializationResult:
         scan_count = await self.scan_repository.count_completed_scans(
             user_id=user_id,
@@ -121,7 +120,7 @@ class SeedInitializationService:
         )
 
         archive_event_id = None
-        initialized = False
+        created_now = False
 
         if operating_system is None:
             os_response = await OperatingSystemService(
@@ -131,7 +130,7 @@ class SeedInitializationService:
             )
 
             os_id = os_response.os_id
-            initialized = True
+            created_now = True
 
             archive_event = await self.archive_repository.create_event(
                 user_id=user_id,
@@ -148,7 +147,11 @@ class SeedInitializationService:
         await self.archive_repository.commit()
 
         return SeedInitializationResult(
-            initialized=initialized,
+            seed_exists=(
+                life_map_id is not None
+                and os_id is not None
+            ),
+            created_now=created_now,
             stage="Seed",
             data_confidence=confidence_score,
             scan_count=scan_count,
@@ -156,7 +159,7 @@ class SeedInitializationService:
             os_id=os_id,
             archive_event_id=archive_event_id,
         )
-
+    
     def _calculate_confidence_score(
         self,
         scan_count: int,

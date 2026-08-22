@@ -242,7 +242,6 @@ class OnboardingService:
             seed_result = await self.seed_initialization_service.initialize_seed(
                 user_id=current_user.user_id,
                 scan_id=scan.scan_id,
-                feature_result=feature_result,
             )
 
             feature_result.metadata["seed"] = seed_result.to_dict()

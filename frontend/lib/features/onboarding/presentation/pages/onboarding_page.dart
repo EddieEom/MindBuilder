@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/models/onboarding_question_model.dart';
 import '../../data/repositories/onboarding_repository.dart';
 import 'onboarding_other_page.dart';
+import '../../../analysis/presentation/pages/analysis_loading_page.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -419,6 +420,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Future<void> _completeOnboarding() async {
+    if (_isAnalyzing) return;
+
     if (_scanId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -427,49 +430,33 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
         ),
       );
-
       return;
     }
 
+    setState(() {
+      _isAnalyzing = true;
+    });
+
     try {
-      setState(() {
-        _isAnalyzing = true;
-      });
+      final answers = _buildAnswersPayload();
 
-      final answers =
-          _buildAnswersPayload();
-
-      debugPrint(
-        '===== ONBOARDING ANSWER PAYLOAD =====',
-      );
-
-      debugPrint(
-        'Scan ID: $_scanId',
-      );
-
-      debugPrint(
-        'Answers: $answers',
-      );
-
-      // 1. 온보딩 답변 저장
       final result =
-        await _repository.submitAnswers(
-      scanId: _scanId!,
-      answers: answers,
-    );
-
-      debugPrint(
-        '===== PATTERN ANALYSIS SUCCESS =====',
-      );
-
-      debugPrint(
-        result.toString(),
+          await _repository.submitAnswers(
+        scanId: _scanId!,
+        answers: answers,
       );
 
       if (!mounted) return;
 
-      // 다음 단계:
-      // 분석 결과 또는 Seed 생성 완료 페이지 이동
+      await Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AnalysisLoadingPage(
+            scanId: _scanId!,
+            analysisResult: result,
+          ),
+        ),
+      );
 
     } catch (e) {
       debugPrint(

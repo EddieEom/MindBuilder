@@ -219,9 +219,8 @@ class LifeMapService:
         result.set_identity(
             identity_name=identity.identity_name,
             description=identity.description or "",
-            confidence=float(
-                identity.confidence
-            ),
+            stage=getattr(identity, "stage", "Provisional"),
+            confidence=float(identity.confidence),
         )
 
         result.set_scores(
