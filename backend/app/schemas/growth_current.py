@@ -23,10 +23,11 @@ class GrowthCurrentItemResponse(BaseModel):
 # ======================================================
 
 class GrowthCurrentRecommendationResponse(BaseModel):
+    recommendation_id: int
 
     title: str
 
-    description: str
+    description: str | None = None
 
     priority: int
 
@@ -64,6 +65,8 @@ class GrowthCurrentMetadataResponse(BaseModel):
 # ======================================================
 
 class GrowthCurrentResponse(BaseModel):
+    explanations: list[dict] = Field(default_factory=list)
+    actions: list[dict] = Field(default_factory=list)
 
     items: list[GrowthCurrentItemResponse] = Field(
         default_factory=list

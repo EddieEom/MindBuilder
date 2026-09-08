@@ -8,16 +8,12 @@ class AuthRemoteDataSource {
 
   AuthRemoteDataSource(this.dio);
 
-  Future<OAuthLoginResponse> oauthLogin(
-    OAuthLoginRequest request,
-  ) async {
+  Future<OAuthLoginResponse> oauthLogin(OAuthLoginRequest request) async {
     final response = await dio.post(
       '/auth/login/oauth',
       data: request.toJson(),
     );
 
-    return OAuthLoginResponse.fromJson(
-      response.data,
-    );
+    return OAuthLoginResponse.fromJson(response.data);
   }
 }

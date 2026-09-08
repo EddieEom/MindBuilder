@@ -5,8 +5,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routes/route_names.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AnalysisLoadingPage extends StatefulWidget {
+import '../../../dashboard/application/dashboard_controller.dart';
+import '../../../auth/application/current_user_provider.dart';
+
+class AnalysisLoadingPage extends ConsumerStatefulWidget {
+  
   final int scanId;
   final Map<String, dynamic> analysisResult;
 
@@ -17,12 +22,12 @@ class AnalysisLoadingPage extends StatefulWidget {
   });
 
   @override
-  State<AnalysisLoadingPage> createState() =>
-      _AnalysisLoadingPageState();
+  ConsumerState<AnalysisLoadingPage> createState() =>
+    _AnalysisLoadingPageState();
 }
 
 class _AnalysisLoadingPageState
-    extends State<AnalysisLoadingPage> {
+    extends ConsumerState<AnalysisLoadingPage> {
   int _progress = 0;
 
   int _currentStep = 0;
@@ -666,6 +671,9 @@ class _AnalysisLoadingPageState
             height: 54,
             child: ElevatedButton(
               onPressed: () {
+                ref.invalidate(dashboardProvider);
+                ref.invalidate(currentUserProvider);
+
                 context.go(
                   RouteNames.dashboard,
                 );

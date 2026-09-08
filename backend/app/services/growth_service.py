@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from app.ai.growth import growth_result
 from app.ai.feature_extractor.feature_result import (
     FeatureResult,
@@ -74,9 +75,7 @@ class GrowthService:
         )
 
         if growth_analysis is None:
-            raise ValueError(
-                "Current Growth not found."
-            )
+            raise HTTPException(status_code=404, detail="Current Growth not found.")
 
         recommendations = await self.growth_repository.get_recommendations(
             growth_analysis.pattern_id
@@ -86,7 +85,19 @@ class GrowthService:
             growth_analysis.growth_analysis_id
         )
 
+        explanations = []
+        for item in growth_analysis.growth_items:
+            for explanation in await self.growth_repository.get_explanations(item.growth_item_id):
+                explanations.append({"title": explanation.title, "content": explanation.content,
+                                     "confidence": float(explanation.confidence)})
+        actions = await self.growth_repository.get_actions(
+            user_id, [r.recommendation_id for r in recommendations]
+        )
         return GrowthCurrentResponse(
+            explanations=explanations,
+            actions=[{"action_id": a.action_id, "recommendation_id": a.recommendation_id,
+                      "title": a.title, "description": a.description, "status": a.status}
+                     for a in actions],
 
             items=[
 
@@ -109,6 +120,7 @@ class GrowthService:
             recommendations=[
 
                 GrowthCurrentRecommendationResponse(
+                    recommendation_id=recommendation.recommendation_id,
 
                     title=recommendation.title,
 
@@ -348,7 +360,7 @@ class GrowthService:
         growth_result: GrowthResult,
     ) -> float:
         item_confidences = [
-            float(item.get("confidence", 0.0))
+            float(item.get("confidence") or 0.0)
             for item in (
                 growth_result.unlearning,
                 growth_result.relearning,
@@ -456,7 +468,7 @@ class GrowthService:
                     title=explanation_data.get("title", "설명"),
                     content=explanation_data.get("content", ""),
                     confidence=float(
-                        explanation_data.get("confidence", 0.0)
+                        explanation_data.get("confidence") or 0.0
                     ),
                     display_order=int(
                         explanation_data.get("display_order", 1)

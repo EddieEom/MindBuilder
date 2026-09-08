@@ -1,6 +1,6 @@
 #데이터 검증을 담당. 이메일 형식이 맞는지, 닉네임 길이는 적절한지 등을 Pydantic이 자동으로 체크.
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 
 # 1. 토큰 응답 모델
@@ -8,6 +8,7 @@ class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    is_new_user: bool = False
 
 # ======================================================
 # Refresh Token
@@ -73,7 +74,14 @@ class UpdateNicknameResponse(BaseModel):
 
 class UpdateProfileImageRequest(BaseModel):
 
-    profile_image: str
+    profile_image: str = Field(..., max_length=255)
+
+    @field_validator("profile_image")
+    @classmethod
+    def validate_profile_image(cls, value: str) -> str:
+        if not value.startswith(("http://", "https://")):
+            raise ValueError("profile_image must be an HTTP(S) URL")
+        return value
 
 
 class UpdateProfileImageResponse(BaseModel):

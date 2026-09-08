@@ -20,6 +20,30 @@ from app.models.analysis import (
 
 class GrowthRepository:
 
+    async def get_owned_analysis(self, analysis_id: int, user_id: int):
+        result = await self.db.execute(
+            select(GrowthAnalysis).join(PatternAnalysis)
+            .where(GrowthAnalysis.growth_analysis_id == analysis_id,
+                   PatternAnalysis.scan.has(user_id=user_id))
+        )
+        return result.scalar_one_or_none()
+
+    async def get_owned_recommendation(self, recommendation_id: int, user_id: int):
+        result = await self.db.execute(
+            select(Recommendation).join(PatternAnalysis)
+            .where(Recommendation.recommendation_id == recommendation_id,
+                   PatternAnalysis.scan.has(user_id=user_id))
+        )
+        return result.scalar_one_or_none()
+
+    async def get_actions(self, user_id: int, recommendation_ids: list[int]):
+        result = await self.db.execute(
+            select(NextAction).where(NextAction.user_id == user_id,
+                                    NextAction.recommendation_id.in_(recommendation_ids))
+            .order_by(NextAction.action_id.desc())
+        )
+        return list(result.scalars().all())
+
     def __init__(
         self,
         db: AsyncSession,

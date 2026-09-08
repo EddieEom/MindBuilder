@@ -35,6 +35,8 @@ class FeatureResult:
 
     confidence: dict[str, float] = field(default_factory=dict)
 
+    confidence_groups: dict[str, dict[str, float]] = field(default_factory=dict)
+
     # ==================================================
     # Selected Options
     # (Cross Rule 계산용)
@@ -179,20 +181,16 @@ class FeatureResult:
         self,
         feature: str,
         value: float,
+        evidence_group: str | None = None,
     ) -> None:
-
-        current = self.confidence.get(feature)
-
-        if current is None:
-
-            self.confidence[feature] = value
-
-        else:
-
-            self.confidence[feature] = max(
-                current,
-                value,
-            )
+        groups = self.confidence_groups.setdefault(feature, {})
+        group = evidence_group or f"LEGACY:{len(groups)}"
+        bounded_value = min(max(float(value), 0.0), 1.0)
+        groups[group] = max(groups.get(group, 0.0), bounded_value)
+        remaining_uncertainty = 1.0
+        for group_confidence in groups.values():
+            remaining_uncertainty *= 1.0 - group_confidence
+        self.confidence[feature] = 1.0 - remaining_uncertainty
 
     def set_metadata(
         self,

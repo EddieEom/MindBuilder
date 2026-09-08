@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
 
 import '../../../core/network/dio_client.dart';
 import '../data/datasources/dashboard_remote_datasource.dart';
@@ -26,8 +27,18 @@ final dashboardRepositoryProvider =
 
 final dashboardProvider =
     FutureProvider<DashboardModel>((ref) async {
+
+  debugPrint("=== DASHBOARD PROVIDER START ===");
+
   final repository =
       ref.watch(dashboardRepositoryProvider);
 
-  return repository.getDashboard();
+  debugPrint("=== CALL API ===");
+
+  final result = await repository.getDashboard();
+
+  debugPrint("=== DASHBOARD RESULT ===");
+  debugPrint(result.toString());
+
+  return result;
 });

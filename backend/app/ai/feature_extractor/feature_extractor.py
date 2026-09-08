@@ -19,6 +19,7 @@ from app.ai.feature_extractor.cross_rules import (
     CONFIDENCE_RULES,
     INTERPRETATION_RULES,
 )
+from app.ai.feature_extractor.rule_policy import RuleQualityPolicy, RULESET_VERSION
 
 class FeatureExtractor:
 
@@ -114,6 +115,7 @@ class FeatureExtractor:
                 self._apply_option_rule(
                     result,
                     rule,
+                    answer.question_id,
                 )
 
     # ======================================================
@@ -124,6 +126,7 @@ class FeatureExtractor:
         self,
         result: FeatureResult,
         rule: dict,
+        question_id: int,
     ) -> None:
 
         score = WEIGHT_SCORE[
@@ -141,13 +144,10 @@ class FeatureExtractor:
             score,
         )
 
-        result.add_confidence(
-            feature,
-            rule.get(
-                "confidence",
-                0.0,
-            ),
+        calibrated = RuleQualityPolicy.option(
+            question_id, feature, rule.get("confidence", 0.0)
         )
+        result.add_confidence(feature, calibrated.confidence, calibrated.evidence_group)
 
         result.add_evidence(
             feature,
@@ -161,10 +161,11 @@ class FeatureExtractor:
                     "psychology",
                     [],
                 ),
-                "confidence": rule.get(
-                    "confidence",
-                    0.0,
-                ),
+                "confidence": calibrated.confidence,
+                "raw_confidence": calibrated.raw_confidence,
+                "evidence_group": calibrated.evidence_group,
+                "source_type": calibrated.source_type,
+                "rule_version": calibrated.rule_version,
                 "direction": rule.get(
                     "direction",
                     "positive",
@@ -182,6 +183,8 @@ class FeatureExtractor:
                 "type": "option",
                 "feature": feature,
                 "score": score,
+                "evidence_group": calibrated.evidence_group,
+                "rule_version": RULESET_VERSION,
             }
         )
 
@@ -206,12 +209,11 @@ class FeatureExtractor:
                     rule["bonus"],
                 )
 
+                calibrated = RuleQualityPolicy.reinforcement(
+                    rule["rule_id"], rule["feature"], len(rule["conditions"])
+                )
                 result.add_confidence(
-                    rule["feature"],
-                    min(
-                        1.0,
-                        result.get_confidence(rule["feature"]) + 0.02,
-                    )
+                    rule["feature"], calibrated.confidence, calibrated.evidence_group
                 )
 
                 result.add_rule(
@@ -220,6 +222,8 @@ class FeatureExtractor:
                         "type": "reinforcement",
                         "feature": rule["feature"],
                         "score": rule["bonus"],
+                        "evidence_group": calibrated.evidence_group,
+                        "rule_version": RULESET_VERSION,
                     }
                 )
 
@@ -230,6 +234,11 @@ class FeatureExtractor:
                         "reason": rule["reason"],
                         "bonus": rule["bonus"],
                         "type": "reinforcement",
+                        "confidence": calibrated.confidence,
+                        "raw_confidence": calibrated.raw_confidence,
+                        "evidence_group": calibrated.evidence_group,
+                        "source_type": calibrated.source_type,
+                        "rule_version": calibrated.rule_version,
                     },
                 )
 
@@ -266,6 +275,7 @@ class FeatureExtractor:
                 "current": rule["current"],
 
                 "target": rule["target"],
+                "rule_version": RULESET_VERSION,
             }
 
             result.add_conflict(conflict)
@@ -331,6 +341,10 @@ class FeatureExtractor:
             if not matched:
                 continue
 
+            raw_confidence = float(rule.get("confidence", 0.0))
+            pattern_confidence = RuleQualityPolicy.pattern(
+                raw_confidence, len(rule.get("evidence", []))
+            )
             result.add_pattern(
                 {
                     "rule_id": rule["rule_id"],
@@ -338,7 +352,9 @@ class FeatureExtractor:
                     "pattern_code": rule["pattern_code"],
                     "category": rule["category"],
                     "priority": rule["priority"],
-                    "confidence": rule["confidence"],
+                    "confidence": pattern_confidence,
+                    "raw_confidence": raw_confidence,
+                    "rule_version": RULESET_VERSION,
                     "reason": rule["reason"],
                     "evidence": rule["evidence"],
                     "psychology": rule["psychology"],

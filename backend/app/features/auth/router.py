@@ -1,5 +1,6 @@
 # backend/app/features/auth/router.py
 from fastapi import APIRouter, Depends
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.features.auth import schemas
@@ -145,7 +146,6 @@ async def export_data(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    print("ROUTER EXPORT START")
     service = UserService(
         user_repository=UserRepository(db),
         identity_repository=IdentityRepository(db),
@@ -159,6 +159,28 @@ async def export_data(
 
     return await service.export_data(
         current_user.user_id
+    )
+
+
+@router.get("/export/pdf", response_class=Response)
+async def export_pdf(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = UserService(
+        user_repository=UserRepository(db),
+        identity_repository=IdentityRepository(db),
+        operating_system_repository=OperatingSystemRepository(db),
+        growth_repository=GrowthRepository(db),
+        life_map_repository=LifeMapRepository(db),
+        pattern_repository=PatternRepository(db),
+        archive_repository=ArchiveRepository(db),
+    )
+    content = await service.export_pdf(current_user.user_id)
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="mindbuilder-report.pdf"'},
     )
 
 

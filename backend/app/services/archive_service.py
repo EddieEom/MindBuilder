@@ -309,19 +309,22 @@ class ArchiveService:
         self,
         user_id: int,
         limit: int = 30,
+        offset: int = 0,
     ):
-        return await self.archive_repository.get_recent_events(user_id=user_id, limit=limit)
+        return await self.archive_repository.get_recent_events(user_id=user_id, limit=limit, offset=offset)
 
     async def get_archive_by_type(
         self,
         user_id: int,
         event_type: str,
         limit: int = 50,
+        offset: int = 0,
     ):
         return await self.archive_repository.get_events_by_type(
             user_id=user_id,
             event_type=event_type,
             limit=limit,
+            offset=offset,
         )
 
     async def get_archive_calendar(
@@ -338,9 +341,11 @@ class ArchiveService:
         self,
         user_id: int,
         limit: int = 50,
+        offset: int = 0,
     ):
         return await self.archive_repository.get_events_by_type(
             user_id=user_id,
             event_type="GROWTH_ANALYZED",
             limit=limit,
+            offset=offset,
         )

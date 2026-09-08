@@ -8,6 +8,10 @@ from app.repositories.growth_repository import GrowthRepository
 from app.repositories.life_map_repository import LifeMapRepository
 from app.repositories.pattern_repository import PatternRepository
 from app.repositories.archive_repository import ArchiveRepository
+from io import BytesIO
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from reportlab.pdfgen import canvas
 
 class UserService:
 
@@ -308,6 +312,48 @@ class UserService:
 
         }
         return report
+
+    async def export_pdf(self, user_id: int) -> bytes:
+        report = await self.export_data(user_id)
+        buffer = BytesIO()
+        font_name = "HYSMyeongJo-Medium"
+        try:
+            pdfmetrics.getFont(font_name)
+        except KeyError:
+            pdfmetrics.registerFont(UnicodeCIDFont(font_name))
+        document = canvas.Canvas(buffer)
+        document.setTitle("MindBuilder Data Report")
+        width, height = document._pagesize
+        y = height - 48
+
+        def line(text: str, size: int = 10, gap: int = 17) -> None:
+            nonlocal y
+            if y < 48:
+                document.showPage()
+                y = height - 48
+            document.setFont(font_name, size)
+            document.drawString(48, y, text[:95])
+            y -= gap
+
+        line("MindBuilder 사용자 데이터 보고서", 18, 30)
+        line(f"사용자: {report['user']['nickname']} ({report['user']['email']})", 11, 25)
+        line("Identity", 14, 22)
+        line(f"이름: {report['identity']['identity_name']}")
+        line(f"설명: {report['identity']['description']}")
+        line(f"신뢰도: {report['identity']['confidence']}%", gap=25)
+        line("Growth", 14, 22)
+        for item in report["growth"]["growth_items"]:
+            line(f"- {item['title']}: {item['description']}")
+        y -= 8
+        line("Life Map", 14, 22)
+        for node in report["lifemap"]["nodes"]:
+            line(f"- {node['title']} ({node['node_type']})")
+        y -= 8
+        line("Human OS", 14, 22)
+        line(f"버전: {report['operating_system']['version']}")
+        line(f"단계: {report['operating_system']['stage']}")
+        document.save()
+        return buffer.getvalue()
 
     async def delete_account(
         self,

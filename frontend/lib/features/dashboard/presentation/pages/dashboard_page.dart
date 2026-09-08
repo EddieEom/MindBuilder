@@ -4,29 +4,78 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/application/current_user_provider.dart';
 import '../../application/dashboard_controller.dart';
 import '../../data/models/dashboard_model.dart';
-import '../../../onboarding/presentation/pages/onboarding_page.dart';
+import '../../../../core/routes/route_names.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../settings/data/settings_repository.dart';
 
-class DashboardPage extends ConsumerWidget {
-  const DashboardPage({super.key});
+class DashboardPage extends ConsumerStatefulWidget {
+  final bool refresh;
 
-  static const _backgroundColor = Color(0xFFF8F9FC);
-  static const _primaryColor = Color(0xFF5B4FD6);
-  static const _textPrimary = Color(0xFF252A3A);
-  static const _textSecondary = Color(0xFF7A8090);
+  const DashboardPage({super.key, this.refresh = false});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends ConsumerState<DashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(dashboardProvider);
+      ref.invalidate(currentUserProvider);
+      _checkScanReminder();
+    });
+  }
+
+  Future<void> _checkScanReminder() async {
+    try {
+      final reminder = await ref
+          .read(settingsRepositoryProvider)
+          .checkReminder();
+      if (!mounted || !reminder.shouldNotify) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: const Icon(
+            Icons.notifications_active_outlined,
+            color: AppColors.primary,
+          ),
+          title: Text(reminder.title ?? '오늘의 Mind Scan'),
+          content: Text(reminder.content ?? ''),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('나중에'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context);
+                context.go(RouteNames.onboarding);
+              },
+              child: const Text('Mind Scan 시작'),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      // The dashboard remains available when reminder checks fail offline.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final dashboardAsync = ref.watch(dashboardProvider);
     final currentUserAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
-      backgroundColor: _backgroundColor,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: dashboardAsync.when(
           loading: () => const Center(
-            child: CircularProgressIndicator(
-              color: _primaryColor,
-            ),
+            child: CircularProgressIndicator(color: AppColors.primary),
           ),
           error: (error, stackTrace) => _DashboardError(
             error: error,
@@ -37,7 +86,7 @@ class DashboardPage extends ConsumerWidget {
           ),
           data: (dashboard) {
             return RefreshIndicator(
-              color: _primaryColor,
+              color: AppColors.primary,
               onRefresh: () async {
                 ref.invalidate(dashboardProvider);
                 ref.invalidate(currentUserProvider);
@@ -51,57 +100,41 @@ class DashboardPage extends ConsumerWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
-                      20,
-                      16,
-                      20,
-                      28,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
                     sliver: SliverList(
-                      delegate: SliverChildListDelegate(
-                        [
-                          _buildHeader(currentUserAsync),
+                      delegate: SliverChildListDelegate([
+                        _buildHeader(currentUserAsync),
 
-                          const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                          _buildGreeting(currentUserAsync),
+                        _buildGreeting(currentUserAsync),
 
-                          const SizedBox(height: 18),
+                        const SizedBox(height: 18),
 
-                          _buildHeroCard(context),
+                        _buildHeroCard(context),
 
-                          const SizedBox(height: 14),
+                        const SizedBox(height: 14),
 
-                          _buildHumanOsCard(
-                            dashboard.humanOs,
-                          ),
+                        _buildHumanOsCard(dashboard.humanOs),
 
-                          const SizedBox(height: 14),
+                        const SizedBox(height: 14),
 
-                          _buildInsightCard(
-                            dashboard.insight,
-                          ),
+                        _buildInsightCard(dashboard.insight),
 
-                          const SizedBox(height: 14),
+                        const SizedBox(height: 14),
 
-                          _buildNextActionCard(
-                            context,
-                            dashboard.nextAction,
-                          ),
+                        _buildNextActionCard(context, dashboard.nextAction),
 
-                          const SizedBox(height: 14),
+                        const SizedBox(height: 14),
 
-                          _buildRecentChangesCard(
-                            dashboard.recentChanges,
-                          ),
+                        _buildRecentChangesCard(dashboard.recentChanges),
 
-                          const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                          _buildQuickMenu(),
+                        _buildQuickMenu(),
 
-                          const SizedBox(height: 24),
-                        ],
-                      ),
+                        const SizedBox(height: 24),
+                      ]),
                     ),
                   ),
                 ],
@@ -117,9 +150,7 @@ class DashboardPage extends ConsumerWidget {
   // Header
   // ============================================================
 
-  Widget _buildHeader(
-    AsyncValue<dynamic> currentUserAsync,
-  ) {
+  Widget _buildHeader(AsyncValue<dynamic> currentUserAsync) {
     final nickname = currentUserAsync.when(
       data: (user) => _resolveNickname(user),
       loading: () => '사용자',
@@ -145,7 +176,7 @@ class DashboardPage extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
-                    color: _textPrimary,
+                    color: AppColors.textPrimary,
                     letterSpacing: -0.8,
                   ),
                 ),
@@ -156,7 +187,7 @@ class DashboardPage extends ConsumerWidget {
                 height: 8,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: _primaryColor,
+                    color: AppColors.primary,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -171,7 +202,7 @@ class DashboardPage extends ConsumerWidget {
             const Icon(
               Icons.notifications_none_rounded,
               size: 28,
-              color: _textPrimary,
+              color: AppColors.textPrimary,
             ),
             Positioned(
               top: 1,
@@ -180,7 +211,7 @@ class DashboardPage extends ConsumerWidget {
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: _primaryColor,
+                  color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -190,9 +221,10 @@ class DashboardPage extends ConsumerWidget {
 
         const SizedBox(width: 16),
 
-        _ProfileAvatar(
-          nickname: nickname,
-          profileImage: profileImage,
+        InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () => context.push(RouteNames.profile),
+          child: _ProfileAvatar(nickname: nickname, profileImage: profileImage),
         ),
       ],
     );
@@ -202,18 +234,14 @@ class DashboardPage extends ConsumerWidget {
   // Greeting
   // ============================================================
 
-  Widget _buildGreeting(
-    AsyncValue<dynamic> currentUserAsync,
-  ) {
+  Widget _buildGreeting(AsyncValue<dynamic> currentUserAsync) {
     final nickname = currentUserAsync.when(
       data: (user) => _resolveNickname(user),
       loading: () => '사용자',
       error: (_, _) => '사용자',
     );
 
-    final displayName = nickname.trim().isNotEmpty
-        ? nickname
-        : '사용자';
+    final displayName = nickname.trim().isNotEmpty ? nickname : '사용자';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,7 +253,7 @@ class DashboardPage extends ConsumerWidget {
           style: const TextStyle(
             fontSize: 23,
             fontWeight: FontWeight.w700,
-            color: _textPrimary,
+            color: AppColors.textPrimary,
             letterSpacing: -0.8,
           ),
         ),
@@ -236,7 +264,7 @@ class DashboardPage extends ConsumerWidget {
           '오늘도 당신의 사고를 함께 정리해볼까요?',
           style: TextStyle(
             fontSize: 14,
-            color: _textSecondary,
+            color: AppColors.textSecondary,
             letterSpacing: -0.3,
           ),
         ),
@@ -283,8 +311,7 @@ class DashboardPage extends ConsumerWidget {
     try {
       final profileImage = user.profileImage;
 
-      if (profileImage is String &&
-          profileImage.trim().isNotEmpty) {
+      if (profileImage is String && profileImage.trim().isNotEmpty) {
         return profileImage.trim();
       }
     } catch (_) {}
@@ -292,8 +319,7 @@ class DashboardPage extends ConsumerWidget {
     try {
       final imageUrl = user.profileImageUrl;
 
-      if (imageUrl is String &&
-          imageUrl.trim().isNotEmpty) {
+      if (imageUrl is String && imageUrl.trim().isNotEmpty) {
         return imageUrl.trim();
       }
     } catch (_) {}
@@ -308,23 +334,16 @@ class DashboardPage extends ConsumerWidget {
   Widget _buildHeroCard(BuildContext context) {
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(
-        minHeight: 214,
-      ),
+      constraints: const BoxConstraints(minHeight: 214),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFFF7F7FC),
-            Color(0xFFEFF0FF),
-          ],
+          colors: [Color(0xFFF7F7FC), Color(0xFFEFF0FF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(
-          color: const Color(0xFFE0E2F0),
-        ),
+        border: Border.all(color: const Color(0xFFE0E2F0)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.025),
@@ -340,11 +359,7 @@ class DashboardPage extends ConsumerWidget {
           return Stack(
             children: [
               if (!isCompact)
-                Positioned(
-                  right: -8,
-                  top: 6,
-                  child: _buildSeedIllustration(),
-                ),
+                Positioned(right: -8, top: 6, child: _buildSeedIllustration()),
 
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,7 +379,7 @@ class DashboardPage extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: _primaryColor,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -377,7 +392,7 @@ class DashboardPage extends ConsumerWidget {
                       fontSize: 22,
                       height: 1.35,
                       fontWeight: FontWeight.w700,
-                      color: _textPrimary,
+                      color: AppColors.textPrimary,
                       letterSpacing: -0.9,
                     ),
                   ),
@@ -385,47 +400,32 @@ class DashboardPage extends ConsumerWidget {
                   const SizedBox(height: 22),
 
                   SizedBox(
-                    width: isCompact
-                        ? double.infinity
-                        : 205,
+                    width: isCompact ? double.infinity : 205,
                     height: 48,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const OnboardingPage(),
-                          ),
-                        );
+                        context.push(RouteNames.scan);
                       },
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
-                        backgroundColor: _primaryColor,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       child: const Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Flexible(
                             child: Text(
                               '오늘 Mind Scan 시작하기',
-                              overflow:
-                                  TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontWeight:
-                                    FontWeight.w600,
-                              ),
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
                           SizedBox(width: 8),
-                          Icon(
-                            Icons.arrow_forward_rounded,
-                            size: 19,
-                          ),
+                          Icon(Icons.arrow_forward_rounded, size: 19),
                         ],
                       ),
                     ),
@@ -451,8 +451,7 @@ class DashboardPage extends ConsumerWidget {
             height: 96,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFE5E6FF)
-                  .withValues(alpha: 0.35),
+              color: const Color(0xFFE5E6FF).withValues(alpha: 0.35),
             ),
           ),
 
@@ -478,13 +477,11 @@ class DashboardPage extends ConsumerWidget {
                 height: 23,
                 decoration: BoxDecoration(
                   color: const Color(0xFF7D75DD),
-                  borderRadius:
-                      const BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(24),
                     topRight: Radius.circular(4),
                     bottomLeft: Radius.circular(24),
-                    bottomRight:
-                        Radius.circular(24),
+                    bottomRight: Radius.circular(24),
                   ),
                 ),
               ),
@@ -501,14 +498,11 @@ class DashboardPage extends ConsumerWidget {
                 height: 23,
                 decoration: BoxDecoration(
                   color: const Color(0xFF8C84E8),
-                  borderRadius:
-                      const BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(4),
                     topRight: Radius.circular(24),
-                    bottomLeft:
-                        Radius.circular(24),
-                    bottomRight:
-                        Radius.circular(24),
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
                   ),
                 ),
               ),
@@ -523,13 +517,10 @@ class DashboardPage extends ConsumerWidget {
   // Human OS
   // ============================================================
 
-  Widget _buildHumanOsCard(
-    HumanOsSummary? humanOs,
-  ) {
+  Widget _buildHumanOsCard(HumanOsSummary? humanOs) {
     final confidence = humanOs?.confidence ?? 0;
 
-    final progress =
-        (confidence / 100).clamp(0.0, 1.0);
+    final progress = (confidence / 100).clamp(0.0, 1.0);
 
     return _DashboardCard(
       child: Row(
@@ -546,11 +537,9 @@ class DashboardPage extends ConsumerWidget {
                   child: CircularProgressIndicator(
                     value: progress,
                     strokeWidth: 6,
-                    backgroundColor:
-                        const Color(0xFFE7E8F0),
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(
-                      _primaryColor,
+                    backgroundColor: const Color(0xFFE7E8F0),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
                     ),
                     strokeCap: StrokeCap.round,
                   ),
@@ -561,7 +550,7 @@ class DashboardPage extends ConsumerWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: _primaryColor,
+                    color: AppColors.primary,
                   ),
                 ),
               ],
@@ -572,29 +561,27 @@ class DashboardPage extends ConsumerWidget {
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Human OS',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: _textPrimary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
 
                 const SizedBox(height: 5),
 
                 Text(
-                  humanOs?.stage ??
-                      '아직 생성되지 않음',
+                  humanOs?.stage ?? '아직 생성되지 않음',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: _primaryColor,
+                    color: AppColors.primary,
                   ),
                 ),
 
@@ -604,23 +591,20 @@ class DashboardPage extends ConsumerWidget {
                   '데이터 신뢰도 ${confidence.toStringAsFixed(0)}%',
                   style: const TextStyle(
                     fontSize: 12,
-                    color: _textSecondary,
+                    color: AppColors.textSecondary,
                   ),
                 ),
 
                 const SizedBox(height: 10),
 
                 ClipRRect(
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10),
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 7,
-                    backgroundColor:
-                        const Color(0xFFE9EAF0),
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(
-                      _primaryColor,
+                    backgroundColor: const Color(0xFFE9EAF0),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
                     ),
                   ),
                 ),
@@ -630,10 +614,7 @@ class DashboardPage extends ConsumerWidget {
 
           const SizedBox(width: 4),
 
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: Color(0xFF9CA1B0),
-          ),
+          const Icon(Icons.chevron_right_rounded, color: Color(0xFF9CA1B0)),
         ],
       ),
     );
@@ -643,9 +624,7 @@ class DashboardPage extends ConsumerWidget {
   // Insight
   // ============================================================
 
-  Widget _buildInsightCard(
-    InsightSummary? insight,
-  ) {
+  Widget _buildInsightCard(InsightSummary? insight) {
     final title = insight?.title?.trim() ?? '';
     final content = insight?.content?.trim() ?? '';
 
@@ -654,31 +633,26 @@ class DashboardPage extends ConsumerWidget {
 
     return _DashboardCard(
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _CircleIcon(
-            icon:
-                Icons.lightbulb_outline_rounded,
-            backgroundColor:
-                const Color(0xFFEDEBFF),
-            iconColor: _primaryColor,
+            icon: Icons.lightbulb_outline_rounded,
+            backgroundColor: const Color(0xFFEDEBFF),
+            iconColor: AppColors.primary,
           ),
 
           const SizedBox(width: 16),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   '오늘의 인사이트',
                   style: TextStyle(
                     fontSize: 12,
-                    color: _textSecondary,
-                    fontWeight:
-                        FontWeight.w500,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
 
@@ -688,14 +662,12 @@ class DashboardPage extends ConsumerWidget {
                   Text(
                     title,
                     maxLines: 2,
-                    overflow:
-                        TextOverflow.ellipsis,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 16,
                       height: 1.4,
-                      color: _textPrimary,
-                      fontWeight:
-                          FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: -0.4,
                     ),
                   ),
@@ -705,11 +677,10 @@ class DashboardPage extends ConsumerWidget {
                   Text(
                     content,
                     maxLines: 2,
-                    overflow:
-                        TextOverflow.ellipsis,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 13,
-                      color: _textSecondary,
+                      color: AppColors.textSecondary,
                       height: 1.4,
                     ),
                   ),
@@ -721,9 +692,8 @@ class DashboardPage extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 15,
                       height: 1.4,
-                      color: _textSecondary,
-                      fontWeight:
-                          FontWeight.w500,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
               ],
@@ -732,10 +702,7 @@ class DashboardPage extends ConsumerWidget {
 
           const SizedBox(width: 4),
 
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: Color(0xFF9CA1B0),
-          ),
+          const Icon(Icons.chevron_right_rounded, color: Color(0xFF9CA1B0)),
         ],
       ),
     );
@@ -749,57 +716,47 @@ class DashboardPage extends ConsumerWidget {
     BuildContext context,
     NextActionSummary? nextAction,
   ) {
-    final rawTitle =
-    nextAction?.title?.trim() ?? '';
+    final rawTitle = nextAction?.title?.trim() ?? '';
 
     final hasAction = rawTitle.isNotEmpty;
 
     return _DashboardCard(
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _CircleIcon(
             icon: Icons.track_changes_rounded,
-            backgroundColor:
-                const Color(0xFFE5F5EE),
-            iconColor:
-                const Color(0xFF38A36C),
+            backgroundColor: const Color(0xFFE5F5EE),
+            iconColor: const Color(0xFF38A36C),
           ),
 
           const SizedBox(width: 16),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   '오늘의 Next Action',
                   style: TextStyle(
                     fontSize: 12,
-                    color: _textSecondary,
-                    fontWeight:
-                        FontWeight.w500,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
 
                 const SizedBox(height: 7),
 
                 Text(
-                  hasAction
-                      ? rawTitle
-                      : '아직 추천된 행동이 없습니다.',
+                  hasAction ? rawTitle : '아직 추천된 행동이 없습니다.',
                   maxLines: 2,
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                     color: hasAction
-                        ? _textPrimary
-                        : _textSecondary,
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary,
                     letterSpacing: -0.4,
                   ),
                 ),
@@ -812,8 +769,7 @@ class DashboardPage extends ConsumerWidget {
 
             _ActionButton(
               onPressed: () {
-                // TODO:
-                // actionType / actionUrl 기반 라우팅 연결
+                context.push(RouteNames.growth);
               },
             ),
           ],
@@ -826,19 +782,15 @@ class DashboardPage extends ConsumerWidget {
   // Recent Changes
   // ============================================================
 
-  Widget _buildRecentChangesCard(
-    List<RecentChange> changes,
-  ) {
+  Widget _buildRecentChangesCard(List<RecentChange> changes) {
     if (changes.isEmpty) {
       return _DashboardCard(
         child: const Row(
           children: [
             _CircleIcon(
               icon: Icons.bar_chart_rounded,
-              backgroundColor:
-                  Color(0xFFFFF2E5),
-              iconColor:
-                  Color(0xFFF29A38),
+              backgroundColor: Color(0xFFFFF2E5),
+              iconColor: Color(0xFFF29A38),
             ),
 
             SizedBox(width: 16),
@@ -846,10 +798,7 @@ class DashboardPage extends ConsumerWidget {
             Expanded(
               child: Text(
                 '아직 비교할 분석 데이터가 부족합니다.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: _textSecondary,
-                ),
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
             ),
           ],
@@ -859,10 +808,7 @@ class DashboardPage extends ConsumerWidget {
 
     final first = changes[0];
 
-    final second =
-        changes.length > 1
-            ? changes[1]
-            : null;
+    final second = changes.length > 1 ? changes[1] : null;
 
     return _DashboardCard(
       child: Column(
@@ -871,10 +817,8 @@ class DashboardPage extends ConsumerWidget {
             children: [
               _CircleIcon(
                 icon: Icons.bar_chart_rounded,
-                backgroundColor:
-                    Color(0xFFFFF2E5),
-                iconColor:
-                    Color(0xFFF29A38),
+                backgroundColor: Color(0xFFFFF2E5),
+                iconColor: Color(0xFFF29A38),
               ),
 
               SizedBox(width: 16),
@@ -884,19 +828,15 @@ class DashboardPage extends ConsumerWidget {
                   '최근 변화',
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight:
-                        FontWeight.w700,
-                    color: _textPrimary,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
 
               Text(
                 '성장 보기',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _textSecondary,
-                ),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
 
               SizedBox(width: 2),
@@ -915,21 +855,16 @@ class DashboardPage extends ConsumerWidget {
             children: [
               Expanded(
                 child: _buildChangeMetric(
-                    label: first.metric?.trim().isNotEmpty == true
-                        ? first.metric!.trim()
-                        : '변화',
+                  label: first.metric?.trim().isNotEmpty == true
+                      ? first.metric!.trim()
+                      : '변화',
 
-                    value: first.change?.toDouble() ?? 0.0,
-                  )
+                  value: first.change?.toDouble() ?? 0.0,
                 ),
+              ),
 
               if (second != null) ...[
-                Container(
-                  width: 1,
-                  height: 42,
-                  color:
-                      const Color(0xFFE7E8EF),
-                ),
+                Container(width: 1, height: 42, color: const Color(0xFFE7E8EF)),
 
                 Expanded(
                   child: _buildChangeMetric(
@@ -948,29 +883,22 @@ class DashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildChangeMetric({
-    required String label,
-    required double value,
-  }) {
+  Widget _buildChangeMetric({required String label, required double value}) {
     final isPositive = value >= 0;
     final prefix = isPositive ? '+' : '';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
             maxLines: 1,
-            overflow:
-                TextOverflow.ellipsis,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12,
-              color: _textSecondary,
+              color: AppColors.textSecondary,
             ),
           ),
 
@@ -982,12 +910,10 @@ class DashboardPage extends ConsumerWidget {
               Flexible(
                 child: Text(
                   '$prefix${value.toStringAsFixed(0)}',
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 23,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                     color: isPositive
                         ? const Color(0xFF36A56B)
                         : const Color(0xFF4B9E79),
@@ -1022,33 +948,43 @@ class DashboardPage extends ConsumerWidget {
       _QuickMenuData(
         label: 'Mind Scan',
         icon: Icons.psychology_outlined,
-        color: _primaryColor,
+        color: AppColors.primary,
+        route: RouteNames.scan,
       ),
       _QuickMenuData(
         label: 'Growth',
         icon: Icons.eco_outlined,
         color: const Color(0xFF4AA978),
+        route: RouteNames.growth,
       ),
       _QuickMenuData(
         label: 'Life Map',
         icon: Icons.map_outlined,
         color: const Color(0xFF4B82D1),
+        route: RouteNames.lifemap,
       ),
       _QuickMenuData(
         label: 'Identity',
         icon: Icons.person_outline_rounded,
-        color: _primaryColor,
+        color: AppColors.primary,
+        route: RouteNames.identity,
       ),
       _QuickMenuData(
         label: 'Archive',
         icon: Icons.folder_open_outlined,
         color: const Color(0xFFF29A38),
+        route: RouteNames.archive,
+      ),
+      _QuickMenuData(
+        label: 'Human OS',
+        icon: Icons.psychology_outlined,
+        color: AppColors.primary,
+        route: RouteNames.hos,
       ),
     ];
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
           padding: EdgeInsets.only(left: 4),
@@ -1056,9 +992,8 @@ class DashboardPage extends ConsumerWidget {
             '빠른 메뉴',
             style: TextStyle(
               fontSize: 14,
-              fontWeight:
-                  FontWeight.w700,
-              color: _textPrimary,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
             ),
           ),
         ),
@@ -1067,20 +1002,16 @@ class DashboardPage extends ConsumerWidget {
 
         GridView.builder(
           shrinkWrap: true,
-          physics:
-              const NeverScrollableScrollPhysics(),
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: items.length,
-          gridDelegate:
-              const SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
             childAspectRatio: 1.15,
           ),
           itemBuilder: (context, index) {
-            return _QuickMenuButton(
-              data: items[index],
-            );
+            return _QuickMenuButton(data: items[index]);
           },
         ),
       ],
@@ -1093,9 +1024,7 @@ class DashboardPage extends ConsumerWidget {
 // ============================================================
 
 class _DashboardCard extends StatelessWidget {
-  const _DashboardCard({
-    required this.child,
-  });
+  const _DashboardCard({required this.child});
 
   final Widget child;
 
@@ -1106,17 +1035,11 @@ class _DashboardCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFEAEBF1),
-        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEAEBF1)),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.black.withValues(
-              alpha: 0.025,
-            ),
+            color: Colors.black.withValues(alpha: 0.025),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
@@ -1143,24 +1066,14 @@ class _CircleIcon extends StatelessWidget {
     return Container(
       width: 58,
       height: 58,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        icon,
-        color: iconColor,
-        size: 27,
-      ),
+      decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
+      child: Icon(icon, color: iconColor, size: 27),
     );
   }
 }
 
 class _ProfileAvatar extends StatelessWidget {
-  const _ProfileAvatar({
-    required this.nickname,
-    required this.profileImage,
-  });
+  const _ProfileAvatar({required this.nickname, required this.profileImage});
 
   final String nickname;
   final String? profileImage;
@@ -1169,10 +1082,9 @@ class _ProfileAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = profileImage?.trim();
 
-    final initial =
-        nickname.trim().isNotEmpty
-            ? nickname.trim()[0].toUpperCase()
-            : '?';
+    final initial = nickname.trim().isNotEmpty
+        ? nickname.trim()[0].toUpperCase()
+        : '?';
 
     return Container(
       width: 42,
@@ -1182,29 +1094,21 @@ class _ProfileAvatar extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       clipBehavior: Clip.antiAlias,
-      child: imageUrl != null &&
-              imageUrl.isNotEmpty
+      child: imageUrl != null && imageUrl.isNotEmpty
           ? Image.network(
               imageUrl,
               fit: BoxFit.cover,
-              errorBuilder:
-                  (context, error, stackTrace) {
-                return _ProfileInitial(
-                  initial: initial,
-                );
+              errorBuilder: (context, error, stackTrace) {
+                return _ProfileInitial(initial: initial);
               },
             )
-          : _ProfileInitial(
-              initial: initial,
-            ),
+          : _ProfileInitial(initial: initial),
     );
   }
 }
 
 class _ProfileInitial extends StatelessWidget {
-  const _ProfileInitial({
-    required this.initial,
-  });
+  const _ProfileInitial({required this.initial});
 
   final String initial;
 
@@ -1224,9 +1128,7 @@ class _ProfileInitial extends StatelessWidget {
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.onPressed,
-  });
+  const _ActionButton({required this.onPressed});
 
   final VoidCallback onPressed;
 
@@ -1235,38 +1137,21 @@ class _ActionButton extends StatelessWidget {
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
-        foregroundColor:
-            const Color(0xFF3AA06D),
-        backgroundColor:
-            const Color(0xFFEAF6F0),
-        minimumSize:
-            const Size(72, 40),
-        padding:
-            const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 8,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(10),
-        ),
+        foregroundColor: const Color(0xFF3AA06D),
+        backgroundColor: const Color(0xFFEAF6F0),
+        minimumSize: const Size(72, 40),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             '시작',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight:
-                  FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
           SizedBox(width: 4),
-          Icon(
-            Icons.arrow_forward_rounded,
-            size: 16,
-          ),
+          Icon(Icons.arrow_forward_rounded, size: 16),
         ],
       ),
     );
@@ -1278,17 +1163,17 @@ class _QuickMenuData {
     required this.label,
     required this.icon,
     required this.color,
+    required this.route,
   });
 
   final String label;
   final IconData icon;
   final Color color;
+  final String route;
 }
 
 class _QuickMenuButton extends StatelessWidget {
-  const _QuickMenuButton({
-    required this.data,
-  });
+  const _QuickMenuButton({required this.data});
 
   final _QuickMenuData data;
 
@@ -1297,47 +1182,32 @@ class _QuickMenuButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
         onTap: () {
-          // TODO:
-          // 실제 라우트 확인 후 연결
+          context.push(data.route);
         },
         child: Ink(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(18),
-            border: Border.all(
-              color:
-                  const Color(0xFFE9EAF0),
-            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE9EAF0)),
           ),
           child: Column(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                data.icon,
-                size: 28,
-                color: data.color,
-              ),
+              Icon(data.icon, size: 28, color: data.color),
 
               const SizedBox(height: 8),
 
               Text(
                 data.label,
-                textAlign:
-                    TextAlign.center,
+                textAlign: TextAlign.center,
                 maxLines: 1,
-                overflow:
-                    TextOverflow.ellipsis,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 10,
-                  color:
-                      Color(0xFF3F4555),
-                  fontWeight:
-                      FontWeight.w600,
+                  color: Color(0xFF3F4555),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -1349,10 +1219,7 @@ class _QuickMenuButton extends StatelessWidget {
 }
 
 class _DashboardError extends StatelessWidget {
-  const _DashboardError({
-    required this.error,
-    required this.onRetry,
-  });
+  const _DashboardError({required this.error, required this.onRetry});
 
   final Object error;
   final VoidCallback onRetry;
@@ -1361,17 +1228,14 @@ class _DashboardError extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding:
-            const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(32),
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.cloud_off_rounded,
               size: 48,
-              color:
-                  Color(0xFF8A90A0),
+              color: Color(0xFF8A90A0),
             ),
 
             const SizedBox(height: 16),
@@ -1380,10 +1244,8 @@ class _DashboardError extends StatelessWidget {
               'Dashboard를 불러오지 못했습니다.',
               style: TextStyle(
                 fontSize: 17,
-                fontWeight:
-                    FontWeight.w700,
-                color:
-                    DashboardPage._textPrimary,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
             ),
 
@@ -1391,12 +1253,10 @@ class _DashboardError extends StatelessWidget {
 
             Text(
               error.toString(),
-              textAlign:
-                  TextAlign.center,
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 12,
-                color:
-                    DashboardPage._textSecondary,
+                color: AppColors.textSecondary,
               ),
             ),
 
@@ -1404,15 +1264,11 @@ class _DashboardError extends StatelessWidget {
 
             ElevatedButton(
               onPressed: onRetry,
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    DashboardPage._primaryColor,
-                foregroundColor:
-                    Colors.white,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
               ),
-              child:
-                  const Text('다시 시도'),
+              child: const Text('다시 시도'),
             ),
           ],
         ),

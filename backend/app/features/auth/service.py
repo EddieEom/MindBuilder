@@ -11,7 +11,7 @@ from app.core.security import (
 )
 
 class AuthService:
-    async def get_or_create_user(self, db: AsyncSession, user_data: UserCreate) -> User:
+    async def get_or_create_user(self, db: AsyncSession, user_data: UserCreate) -> tuple[User, bool]:
         # 기존 로직: 유저 조회 또는 생성
         stmt = select(OAuthAccount).where(
             OAuthAccount.provider == user_data.provider,
@@ -26,7 +26,7 @@ class AuthService:
             if user is None:
                 raise ValueError("OAuth account user not found.")
 
-            return user
+            return user, False
 
         new_user = User(
             email=user_data.email,
@@ -46,11 +46,11 @@ class AuthService:
         db.add(new_oauth)
         await db.commit()
         await db.refresh(new_user)
-        return new_user
+        return new_user, True
 
     async def login_or_signup(self, db: AsyncSession, user_data: UserCreate) -> Token:
         # 1. 유저 확보
-        user = await self.get_or_create_user(db, user_data)
+        user, is_new_user = await self.get_or_create_user(db, user_data)
         
         # 2. Access Token 발급
         access_token = create_access_token(
@@ -70,6 +70,7 @@ class AuthService:
         return Token(
             access_token=access_token,
             refresh_token=refresh_token,
+            is_new_user=is_new_user,
         )
 
     async def refresh_access_token(

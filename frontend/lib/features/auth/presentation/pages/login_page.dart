@@ -17,95 +17,71 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
-Future<void> _handleGoogleLogin() async {
-  if (_isLoading) return;
+  Future<void> _handleGoogleLogin() async {
+    if (_isLoading) return;
 
-  setState(() {
-    _isLoading = true;
-  });
+    setState(() {
+      _isLoading = true;
+    });
 
-  try {
-    // 1. Google 로그인
-    final googleUser =
-        await GoogleAuthService.instance.signIn();
+    try {
+      // 1. Google 로그인
+      final googleUser = await GoogleAuthService.instance.signIn();
 
-    if (googleUser == null) {
-      return;
-    }
+      if (googleUser == null) {
+        return;
+      }
 
-    debugPrint('===== GOOGLE USER =====');
-    debugPrint('Email: ${googleUser.email}');
-    debugPrint('Nickname: ${googleUser.nickname}');
-    debugPrint(
-      'Provider User ID: ${googleUser.providerUserId}',
-    );
+      // 2. 백엔드 OAuth 로그인
+      final authRepository = AuthRepository();
 
-    // 2. 백엔드 OAuth 로그인
-    final authRepository = AuthRepository();
+      final result = await authRepository.loginWithOAuth(
+        email: googleUser.email,
+        nickname: googleUser.nickname,
+        provider: 'google',
+        providerUserId: googleUser.providerUserId,
+        profileImage: googleUser.profileImage,
+      );
 
-    final result =
-        await authRepository.loginWithOAuth(
-      email: googleUser.email,
-      nickname: googleUser.nickname,
-      provider: 'google',
-      providerUserId: googleUser.providerUserId,
-      profileImage: googleUser.profileImage,
-    );
+      final accessToken = result['access_token'] as String;
 
-    debugPrint(
-      'Access Token: ${result['access_token']}',
-    );
-    debugPrint(
-      'Refresh Token: ${result['refresh_token']}',
-    );
+      final refreshToken = result['refresh_token'] as String;
 
-    final accessToken =
-        result['access_token'] as String;
+      await TokenStorage.instance.saveTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
 
-    final refreshToken =
-        result['refresh_token'] as String;
-
-    await TokenStorage.instance.saveTokens(
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-    );
-
-    debugPrint('===== BACKEND LOGIN SUCCESS =====');
-    debugPrint('===== TOKEN SAVED =====');
-    
-    if (!mounted) return;
-
-    // 3. onboarding 이동
-    context.go(RouteNames.onboarding);
+      if (!mounted) return;
+      final isNewUser = result['is_new_user'] as bool? ?? false;
+      context.go(isNewUser ? RouteNames.onboarding : RouteNames.dashboard);
     } on DioException catch (e) {
-    debugPrint('===== LOGIN ERROR =====');
+      debugPrint('===== LOGIN ERROR =====');
 
-    debugPrint(
-      'Status Code: ${e.response?.statusCode}',
-    );
+      debugPrint('Status Code: ${e.response?.statusCode}');
 
-    debugPrint(
-      'Response Data: ${e.response?.data}',
-    );
+      debugPrint('Response Data: ${e.response?.data}');
 
-    debugPrint(
-      'Request Data: ${e.requestOptions.data}',
-    );
+      debugPrint('Request Data: ${e.requestOptions.data}');
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '로그인 요청에 실패했습니다. (${e.response?.statusCode})',
-        ),
-      ),
-    );
-  } catch (e) {
-    debugPrint('===== UNKNOWN LOGIN ERROR =====');
-    debugPrint(e.toString());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('로그인 요청에 실패했습니다. (${e.response?.statusCode})')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인을 완료하지 못했습니다. 다시 시도해 주세요.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -113,9 +89,7 @@ Future<void> _handleGoogleLogin() async {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
               const Spacer(flex: 2),
@@ -140,9 +114,9 @@ Future<void> _handleGoogleLogin() async {
               Text(
                 'Mind Builder',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
               ),
 
               const SizedBox(height: 6),
@@ -150,15 +124,13 @@ Future<void> _handleGoogleLogin() async {
               Text(
                 'AI 시대의 인간 운영체제 시스템',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                  color: AppColors.textSecondary,
+                ),
               ),
 
               const SizedBox(height: 32),
 
-              Divider(
-                color: AppColors.border,
-              ),
+              Divider(color: AppColors.border),
 
               const SizedBox(height: 28),
 
@@ -166,14 +138,12 @@ Future<void> _handleGoogleLogin() async {
                 textAlign: TextAlign.center,
                 text: TextSpan(
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        height: 1.55,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
+                    height: 1.55,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                   children: [
-                    const TextSpan(
-                      text: '당신의 ',
-                    ),
+                    const TextSpan(text: '당신의 '),
                     TextSpan(
                       text: '생각',
                       style: TextStyle(
@@ -181,9 +151,7 @@ Future<void> _handleGoogleLogin() async {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const TextSpan(
-                      text: '은\n인생의 데이터가 되고\n성장이 됩니다.',
-                    ),
+                    const TextSpan(text: '은\n인생의 데이터가 되고\n성장이 됩니다.'),
                   ],
                 ),
               ),
@@ -193,17 +161,10 @@ Future<void> _handleGoogleLogin() async {
               _SocialLoginButton(
                 icon: const Text(
                   'G',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                text: _isLoading
-                    ? '로그인 중...'
-                    : 'Google로 계속하기',
-                onPressed: _isLoading
-                    ? () {}
-                    : _handleGoogleLogin,
+                text: _isLoading ? '로그인 중...' : 'Google로 계속하기',
+                onPressed: _isLoading ? () {} : _handleGoogleLogin,
               ),
 
               const SizedBox(height: 12),
@@ -231,18 +192,16 @@ Future<void> _handleGoogleLogin() async {
 
               const Spacer(flex: 2),
 
-              Divider(
-                color: AppColors.border,
-              ),
+              Divider(color: AppColors.border),
 
               const SizedBox(height: 16),
 
               Text(
                 '오늘도 누군가는 자신의 사고 구조를 발견하고 있습니다.',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
 
               const SizedBox(height: 6),
@@ -250,9 +209,9 @@ Future<void> _handleGoogleLogin() async {
               Text(
                 '당신의 사고 데이터는 오직 당신만을 위해 저장됩니다.',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
 
               const SizedBox(height: 16),
@@ -260,15 +219,9 @@ Future<void> _handleGoogleLogin() async {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  TextButton(
-                    onPressed: () {},
-                    child: const Text('개인정보처리방침'),
-                  ),
+                  TextButton(onPressed: () {}, child: const Text('개인정보처리방침')),
                   const Text('·'),
-                  TextButton(
-                    onPressed: () {},
-                    child: const Text('이용약관'),
-                  ),
+                  TextButton(onPressed: () {}, child: const Text('이용약관')),
                 ],
               ),
 
@@ -302,9 +255,7 @@ class _SocialLoginButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: AppColors.textPrimary,
-          side: BorderSide(
-            color: AppColors.border,
-          ),
+          side: BorderSide(color: AppColors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -312,16 +263,10 @@ class _SocialLoginButton extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: icon,
-            ),
+            Align(alignment: Alignment.centerLeft, child: icon),
             Text(
               text,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ],
         ),

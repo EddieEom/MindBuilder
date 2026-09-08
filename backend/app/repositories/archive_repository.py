@@ -7,6 +7,10 @@ from app.models.system import ArchiveEvent
 
 
 class ArchiveRepository:
+    async def summary(self, user_id: int) -> dict[str, int]:
+        rows = await self.db.execute(select(ArchiveEvent.event_type, func.count())
+            .where(ArchiveEvent.user_id == user_id).group_by(ArchiveEvent.event_type))
+        return dict(rows.all())
 
     def __init__(
         self,
@@ -38,11 +42,13 @@ class ArchiveRepository:
         self,
         user_id: int,
         limit: int = 30,
+        offset: int = 0,
     ) -> list[ArchiveEvent]:
         stmt = (
             select(ArchiveEvent)
             .where(ArchiveEvent.user_id == user_id)
             .order_by(ArchiveEvent.created_at.desc(), ArchiveEvent.event_id.desc())
+            .offset(offset)
             .limit(limit)
         )
         result = await self.db.execute(stmt)
@@ -61,6 +67,7 @@ class ArchiveRepository:
         user_id: int,
         event_type: str,
         limit: int = 50,
+        offset: int = 0,
     ) -> list[ArchiveEvent]:
         stmt = (
             select(ArchiveEvent)
@@ -69,6 +76,7 @@ class ArchiveRepository:
                 ArchiveEvent.event_type == event_type,
             )
             .order_by(ArchiveEvent.created_at.desc(), ArchiveEvent.event_id.desc())
+            .offset(offset)
             .limit(limit)
         )
         result = await self.db.execute(stmt)

@@ -244,6 +244,8 @@ class OnboardingService:
                 scan_id=scan.scan_id,
             )
 
+            await self.answer_repository.commit()
+            
             feature_result.metadata["seed"] = seed_result.to_dict()
 
             return PatternAnalysisResponse(

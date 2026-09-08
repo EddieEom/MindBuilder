@@ -10,6 +10,8 @@ class OSCoreValueResponse(BaseModel):
 
 
 class OperatingSystemResponse(BaseModel):
+    confidence_score: float | None = None
+    pattern_scores: dict[str, float] = Field(default_factory=dict)
     os_id: int
     version: str
     stage: str

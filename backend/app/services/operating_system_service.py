@@ -23,6 +23,16 @@ from app.schemas.operating_system import (
 )
 
 class OperatingSystemService:
+    async def _visual_data(self, user_id: int) -> dict:
+        confidence = await self._get_data_confidence(user_id)
+        pattern = await self.pattern_repository.get_latest_pattern(user_id)
+        return {
+            "confidence_score": float(confidence.confidence_score) if confidence else None,
+            "pattern_scores": {
+                name: float(getattr(pattern, name + "_score"))
+                for name in ("future", "creativity", "execution", "uncertainty", "perfectionism", "resilience")
+            } if pattern else {},
+        }
 
     def __init__(
         self,
@@ -199,6 +209,7 @@ class OperatingSystemService:
         )
 
         return OperatingSystemResponse(
+            **await self._visual_data(operating_system.user_id),
             os_id=operating_system.os_id,
             version=operating_system.version,
             stage=await self._derive_stage(operating_system),
@@ -523,6 +534,7 @@ class OperatingSystemService:
         data_confidence: str,
     ) -> OperatingSystemResponse:
         return OperatingSystemResponse(
+            **await self._visual_data(operating_system.user_id),
             os_id=operating_system.os_id,
             version=operating_system.version,
             stage=stage,

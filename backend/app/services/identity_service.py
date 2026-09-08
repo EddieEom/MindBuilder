@@ -398,16 +398,15 @@ class IdentityService:
     async def get_detail(
         self,
         identity_id: int,
+        user_id: int,
     ) -> IdentityResponse:
 
         identity = await self.identity_repository.get_by_id(
             identity_id
         )
 
-        if identity is None:
-            raise ValueError(
-                "Identity not found."
-            )
+        if identity is None or identity.user_id != user_id:
+            raise ValueError("Identity not found.")
 
         keywords = await self.identity_repository.get_keywords(
             identity.identity_id

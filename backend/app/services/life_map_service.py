@@ -763,10 +763,11 @@ class LifeMapService:
     async def get_node(
         self,
         node_id: int,
+        user_id: int,
     ) -> LifeMapNodeResponse:
 
         node = await self.life_map_repository.get_node(
-            node_id
+            node_id, user_id=user_id,
         )
 
         if node is None:

@@ -4,8 +4,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/models/onboarding_question_model.dart';
 import '../../data/repositories/onboarding_repository.dart';
 import 'onboarding_other_page.dart';
-import '../../../analysis/presentation/pages/analysis_loading_page.dart';
-
+import 'package:go_router/go_router.dart';
+import '../../../../core/routes/route_names.dart';
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
 
@@ -448,14 +448,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
       if (!mounted) return;
 
-      await Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AnalysisLoadingPage(
-            scanId: _scanId!,
-            analysisResult: result,
-          ),
-        ),
+      context.push(
+        RouteNames.analysis,
+        extra: {
+          'scanId': _scanId!,
+          'analysisResult': result,
+        },
       );
 
     } catch (e) {
@@ -928,10 +926,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return PopScope(
+        canPop: false,
+        child: Scaffold(
         backgroundColor: AppColors.background,
-        body: const Center(
-          child: CircularProgressIndicator(),
+          body: const Center(
+            child: CircularProgressIndicator(),
+          ),
         ),
       );
     }
@@ -975,140 +976,154 @@ class _OnboardingPageState extends State<OnboardingPage> {
         (_currentQuestionIndex + 1) /
             questions.length;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 16,
-          ),
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  if (_currentQuestionIndex > 0)
-                    IconButton(
-                      onPressed:
-                          _previousQuestion,
-                      icon: const Icon(
-                        Icons.arrow_back,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Mind Scan 진행 중입니다.',
+              ),
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 16,
+            ),
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (_currentQuestionIndex > 0)
+                      IconButton(
+                        onPressed:
+                            _previousQuestion,
+                        icon: const Icon(
+                          Icons.arrow_back,
+                        ),
+                      ),
+
+                    Expanded(
+                      child:
+                          LinearProgressIndicator(
+                        value: progress,
+                        borderRadius:
+                            BorderRadius.circular(
+                          10,
+                        ),
                       ),
                     ),
+                  ],
+                ),
 
-                  Expanded(
-                    child:
-                        LinearProgressIndicator(
-                      value: progress,
-                      borderRadius:
-                          BorderRadius.circular(
-                        10,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                const SizedBox(height: 32),
 
-              const SizedBox(height: 32),
-
-              Text(
-                '${_currentQuestionIndex + 1}'
-                ' / ${questions.length}',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(
-                      color:
-                          AppColors.textSecondary,
-                    ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // 질문 제목
-              Text(
-                question.title,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(
-                      fontWeight:
-                          FontWeight.bold,
-                      color:
-                          AppColors.textPrimary,
-                      height: 1.4,
-                    ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // 질문 설명
-              if (question.description.isNotEmpty)
                 Text(
-                  question.description,
+                  '${_currentQuestionIndex + 1}'
+                  ' / ${questions.length}',
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
                       ?.copyWith(
                         color:
                             AppColors.textSecondary,
-                        height: 1.5,
                       ),
                 ),
 
-              const SizedBox(height: 32),
+                const SizedBox(height: 16),
 
-              
-                Expanded(
-                  child: _buildQuestionContent(
-                    question,
-                  ),
+                // 질문 제목
+                Text(
+                  question.title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(
+                        fontWeight:
+                            FontWeight.bold,
+                        color:
+                            AppColors.textPrimary,
+                        height: 1.4,
+                      ),
                 ),
-              
 
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed:
-                  _isAnalyzing
-                      ? null
-                      : _nextQuestion,
-                    style:
-                        ElevatedButton.styleFrom(
-                      backgroundColor:
-                          AppColors.primary,
-                    foregroundColor:
-                        Colors.white,
-                    shape:
-                        RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(14),
+                const SizedBox(height: 12),
+
+                // 질문 설명
+                if (question.description.isNotEmpty)
+                  Text(
+                    question.description,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(
+                          color:
+                              AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                  ),
+
+                const SizedBox(height: 32),
+
+                
+                  Expanded(
+                    child: _buildQuestionContent(
+                      question,
                     ),
                   ),
-                  child: _isAnalyzing
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child:
-                            CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        _currentQuestionIndex ==
-                                questions.length - 1
-                            ? '분석 시작하기'
-                            : '다음',
-                      ),
-                ),
-              ),
+                
 
-              const SizedBox(height: 12),
-            ],
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed:
+                    _isAnalyzing
+                        ? null
+                        : _nextQuestion,
+                      style:
+                          ElevatedButton.styleFrom(
+                        backgroundColor:
+                            AppColors.primary,
+                      foregroundColor:
+                          Colors.white,
+                      shape:
+                          RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _isAnalyzing
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child:
+                              CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          _currentQuestionIndex ==
+                                  questions.length - 1
+                              ? '분석 시작하기'
+                              : '다음',
+                        ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+              ],
+            ),
           ),
         ),
       ),

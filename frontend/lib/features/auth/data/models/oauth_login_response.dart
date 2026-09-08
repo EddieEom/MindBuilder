@@ -9,9 +9,7 @@ class OAuthLoginResponse {
     required this.tokenType,
   });
 
-  factory OAuthLoginResponse.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory OAuthLoginResponse.fromJson(Map<String, dynamic> json) {
     return OAuthLoginResponse(
       accessToken: json['access_token'],
       refreshToken: json['refresh_token'],

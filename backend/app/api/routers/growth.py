@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -37,13 +37,13 @@ class AnalyzeRequest(BaseModel):
 
 
 class FeedbackCreate(BaseModel):
-    rating: int
+    rating: int = Field(ge=1, le=5)
     comment: str | None = None
 
 
 class NextActionCreate(BaseModel):
-    recommendation_id: int
-    title: str
+    recommendation_id: int = Field(gt=0)
+    title: str = Field(min_length=1, max_length=255)
     description: str | None = None
 
 
@@ -131,7 +131,7 @@ async def get_growth_analysis(
 ):
     repo = GrowthRepository(db)
 
-    analysis = await repo.get_growth_analysis(growth_analysis_id)
+    analysis = await repo.get_owned_analysis(growth_analysis_id, current_user.user_id)
 
     if analysis is None:
         raise HTTPException(status_code=404, detail="GrowthAnalysis not found")
@@ -178,13 +178,11 @@ async def submit_feedback(
 ):
     repo = GrowthRepository(db)
 
-    feedback = Feedback(
-        growth_analysis_id=growth_analysis_id,
-        rating=int(request.rating),
-        comment=request.comment,
+    if await repo.get_owned_analysis(growth_analysis_id, current_user.user_id) is None:
+        raise HTTPException(status_code=404, detail="GrowthAnalysis not found")
+    created = await repo.upsert_feedback(
+        growth_analysis_id=growth_analysis_id, rating=request.rating, comment=request.comment,
     )
-
-    created = await repo.create_feedback(feedback)
 
     await repo.commit()
 
@@ -205,6 +203,14 @@ async def create_next_action(
     db: AsyncSession = Depends(get_db),
 ):
     repo = GrowthRepository(db)
+
+    recommendation = await repo.get_owned_recommendation(request.recommendation_id, current_user.user_id)
+    if recommendation is None:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+    existing = await repo.get_actions(current_user.user_id, [request.recommendation_id])
+    if existing:
+        created = existing[0]
+        return {"action_id": created.action_id, "status": created.status, "created_at": created.created_at}
 
     action = NextAction(
         user_id=int(current_user.user_id),

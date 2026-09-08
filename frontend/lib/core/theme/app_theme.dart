@@ -4,6 +4,21 @@ import 'app_colors.dart';
 import 'app_typography.dart';
 
 abstract final class AppTheme {
+  static ThemeData get darkTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.dark,
+    ),
+    scaffoldBackgroundColor: const Color(0xFF12121A),
+    cardTheme: CardThemeData(
+      color: const Color(0xFF1D1D28),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+  );
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -74,9 +89,7 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(
-            color: AppColors.border,
-          ),
+          side: const BorderSide(color: AppColors.border),
         ),
       ),
 
@@ -89,10 +102,7 @@ abstract final class AppTheme {
           foregroundColor: AppColors.textOnPrimary,
           elevation: 0,
           minimumSize: const Size.fromHeight(52),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 16,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -107,13 +117,8 @@ abstract final class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
           minimumSize: const Size.fromHeight(52),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 16,
-          ),
-          side: const BorderSide(
-            color: AppColors.border,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          side: const BorderSide(color: AppColors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -138,39 +143,27 @@ abstract final class AppTheme {
 
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.border,
-          ),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
 
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.border,
-          ),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
 
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
 
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.error,
-          ),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
 
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.error,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
       ),
 
@@ -189,32 +182,22 @@ abstract final class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.surface,
         indicatorColor: AppColors.primary.withValues(alpha: 0.12),
-        labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) {
-            if (states.contains(WidgetState.selected)) {
-              return AppTypography.labelSmall.copyWith(
-                color: AppColors.primary,
-              );
-            }
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppTypography.labelSmall.copyWith(color: AppColors.primary);
+          }
 
-            return AppTypography.labelSmall.copyWith(
-              color: AppColors.textTertiary,
-            );
-          },
-        ),
-        iconTheme: WidgetStateProperty.resolveWith(
-          (states) {
-            if (states.contains(WidgetState.selected)) {
-              return const IconThemeData(
-                color: AppColors.primary,
-              );
-            }
+          return AppTypography.labelSmall.copyWith(
+            color: AppColors.textTertiary,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: AppColors.primary);
+          }
 
-            return const IconThemeData(
-              color: AppColors.textTertiary,
-            );
-          },
-        ),
+          return const IconThemeData(color: AppColors.textTertiary);
+        }),
       ),
     );
   }

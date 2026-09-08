@@ -9,6 +9,7 @@ import '../widgets/splash_logo_scene.dart';
 import '../widgets/thinking_structure_scene.dart';
 import '../widgets/thought_bubble_scene.dart';
 import '../../../../core/storage/token_storage.dart';
+import '../../../../core/network/dio_client.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -29,30 +30,19 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _handleSplashComplete() async {
-    final accessToken =
-        await TokenStorage.instance.getAccessToken();
+    final accessToken = await TokenStorage.instance.getAccessToken();
 
     if (!mounted) return;
 
     if (accessToken != null && accessToken.isNotEmpty) {
-      debugPrint(
-        '===== AUTO LOGIN =====',
-      );
-
-      debugPrint(
-        'Saved access token found',
-      );
-
-      context.go('/dashboard');
+      try {
+        await DioClient().dio.get('/auth/me');
+        if (mounted) context.go('/dashboard');
+      } catch (_) {
+        await TokenStorage.instance.clearTokens();
+        if (mounted) context.go('/login');
+      }
     } else {
-      debugPrint(
-        '===== LOGIN REQUIRED =====',
-      );
-
-      debugPrint(
-        'No saved access token',
-      );
-
       context.go('/login');
     }
   }
@@ -122,10 +112,7 @@ class _SplashPageState extends State<SplashPage> {
             child: Align(
               alignment: Alignment.topRight,
               child: Padding(
-                padding: const EdgeInsets.only(
-                  top: 12,
-                  right: 20,
-                ),
+                padding: const EdgeInsets.only(top: 12, right: 20),
                 child: TextButton(
                   onPressed: _handleSplashComplete,
                   style: TextButton.styleFrom(
@@ -137,10 +124,7 @@ class _SplashPageState extends State<SplashPage> {
                   ),
                   child: const Text(
                     '건너뛰기',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ),
               ),

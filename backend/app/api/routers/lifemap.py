@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import (
@@ -100,11 +100,13 @@ async def get_life_map_history(
 )
 async def get_life_map_node(
     node_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
 
     service = LifeMapService(db)
 
-    return await service.get_node(
-        node_id=node_id,
-    )
+    try:
+        return await service.get_node(node_id=node_id, user_id=current_user.user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))

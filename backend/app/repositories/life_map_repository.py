@@ -331,12 +331,14 @@ class LifeMapRepository:
     async def get_node(
         self,
         node_id: int,
+        user_id: int,
     ) -> LifeMapNode | None:
 
         stmt = (
             select(LifeMapNode)
             .where(
-                LifeMapNode.node_id == node_id
+                LifeMapNode.node_id == node_id,
+                LifeMapNode.life_map_id.in_(select(LifeMap.life_map_id).where(LifeMap.user_id == user_id)),
             )
             .options(
                 selectinload(

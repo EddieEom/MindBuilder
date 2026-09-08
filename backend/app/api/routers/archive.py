@@ -17,6 +17,14 @@ router = APIRouter(
 )
 
 
+@router.get("/summary", response_model=dict[str, int], summary="전체 Archive 유형별 기록 수")
+async def get_archive_summary(
+    current_user: User = Depends(get_current_user),
+    archive_service: ArchiveService = Depends(get_archive_service),
+):
+    return await archive_service.archive_repository.summary(current_user.user_id)
+
+
 def _to_archive_response(event) -> ArchiveEventResponse:
     return ArchiveEventResponse(
         event_id=event.event_id,
@@ -36,12 +44,14 @@ def _to_archive_response(event) -> ArchiveEventResponse:
 )
 async def get_recent_archive(
     limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     archive_service: ArchiveService = Depends(get_archive_service),
 ):
     events = await archive_service.get_recent_archive(
         user_id=current_user.user_id,
         limit=limit,
+        offset=offset,
     )
 
     return ArchiveListResponse(
@@ -60,6 +70,7 @@ async def get_recent_archive(
 async def get_archive_by_type(
     event_type: str,
     limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     archive_service: ArchiveService = Depends(get_archive_service),
 ):
@@ -67,6 +78,7 @@ async def get_archive_by_type(
         user_id=current_user.user_id,
         event_type=event_type.upper(),
         limit=limit,
+        offset=offset,
     )
 
     return ArchiveListResponse(
@@ -107,12 +119,14 @@ async def get_archive_calendar(
 )
 async def get_growth_timeline(
     limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     archive_service: ArchiveService = Depends(get_archive_service),
 ):
     events = await archive_service.get_growth_timeline(
         user_id=current_user.user_id,
         limit=limit,
+        offset=offset,
     )
 
     return ArchiveListResponse(

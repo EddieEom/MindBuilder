@@ -1,8 +1,10 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
 # 라우터 임포트
 from app.features.auth.router import router as auth_router
+from app.features.settings.router import router as settings_router
 from app.api.routers import onboarding, growth, identity, lifemap, pattern, operating_system, archive, dashboard, recommendation
 # FastAPI 인스턴스 생성
 app = FastAPI(
@@ -11,8 +13,17 @@ app = FastAPI(
     debug=True,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # 라우터 등록
 app.include_router(auth_router)
+app.include_router(settings_router)
 app.include_router(
     onboarding.router,
     prefix="/api/v1/onboarding",

@@ -3,9 +3,8 @@ import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
 
 class AuthRepository {
-  AuthRepository({
-    DioClient? dioClient,
-  }) : _dio = (dioClient ?? DioClient()).dio;
+  AuthRepository({DioClient? dioClient})
+    : _dio = (dioClient ?? DioClient()).dio;
 
   final Dio _dio;
 

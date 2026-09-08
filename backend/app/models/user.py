@@ -1,5 +1,5 @@
 # backend/app/models/user.py
-from sqlalchemy import String, TIMESTAMP, ForeignKey, BIGINT, func
+from sqlalchemy import Boolean, Integer, String, TIMESTAMP, ForeignKey, BIGINT, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 from typing import List
@@ -69,6 +69,29 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+
+    settings = relationship(
+        "UserSettings",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+
+    user_id: Mapped[int] = mapped_column(
+        BIGINT, ForeignKey("users.user_id"), primary_key=True
+    )
+    dark_mode: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
+    language: Mapped[str] = mapped_column(String(10), default="ko", server_default="ko", nullable=False)
+    notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
+    reminder_hour: Mapped[int] = mapped_column(Integer, default=20, server_default="20", nullable=False)
+    timezone: Mapped[str] = mapped_column(String(64), default="Asia/Seoul", server_default="Asia/Seoul", nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    user = relationship("User", back_populates="settings")
 
 class OAuthAccount(Base):
     __tablename__ = "oauth_accounts"

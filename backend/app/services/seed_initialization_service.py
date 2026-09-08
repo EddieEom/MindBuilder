@@ -75,11 +75,19 @@ class SeedInitializationService:
             scan_id
         )
 
+        quality = await self.feature_repository.quality_metrics(
+            scan_id=scan_id,
+            user_id=user_id,
+        )
+
         confidence_score = self._calculate_confidence_score(
-            scan_count=scan_count,
             answer_question_count=answer_question_count,
             feature_count=feature_count,
             other_input_count=other_input_count,
+            evidence_count=int(quality["evidence_count"]),
+            evidence_strength=quality["evidence_strength"],
+            conflict_strength=quality["conflict_strength"],
+            longitudinal_stability=quality["stability"],
         )
 
         await self.data_confidence_repository.upsert(
@@ -122,27 +130,27 @@ class SeedInitializationService:
         archive_event_id = None
         created_now = False
 
-        if operating_system is None:
-            os_response = await OperatingSystemService(
-                self.db
-            ).generate(
-                user_id
-            )
 
-            os_id = os_response.os_id
-            created_now = True
+        os_response = await OperatingSystemService(
+            self.db
+        ).generate(
+            user_id
+        )
 
-            archive_event = await self.archive_repository.create_event(
-                user_id=user_id,
-                event_type="SEED_CREATED",
-                reference_id=os_id,
-                title="초기 Seed 생성 완료",
-                summary=(
-                    "첫 번째 사고 패턴 분석을 기반으로 "
-                    "Human OS 초기 상태가 생성되었습니다."
-                ),
-            )
-            archive_event_id = archive_event.event_id
+        os_id = os_response.os_id
+        created_now = True
+
+        archive_event = await self.archive_repository.create_event(
+            user_id=user_id,
+            event_type="SEED_CREATED",
+            reference_id=os_id,
+            title="초기 Seed 생성 완료",
+            summary=(
+                "첫 번째 사고 패턴 분석을 기반으로 "
+                "Human OS 초기 상태가 생성되었습니다."
+            ),
+        )
+        archive_event_id = archive_event.event_id
 
         await self.archive_repository.commit()
 
@@ -162,10 +170,13 @@ class SeedInitializationService:
     
     def _calculate_confidence_score(
         self,
-        scan_count: int,
         answer_question_count: int,
         feature_count: int,
         other_input_count: int,
+        evidence_count: int,
+        evidence_strength: float,
+        conflict_strength: float,
+        longitudinal_stability: float,
     ) -> float:
         total_seed_questions = 6
         answer_completeness = min(
@@ -178,20 +189,17 @@ class SeedInitializationService:
             1.0,
         )
 
+        evidence_diversity = min(evidence_count / 8.0, 1.0)
+        specificity = min(other_input_count / 2.0, 1.0)
         score = (
-            8.0
-            +
-            answer_completeness * 6.0
-            +
-            feature_coverage * 6.0
-            +
-            min(other_input_count, 2) * 1.0
-            +
-            max(scan_count - 1, 0) * 5.0
+            answer_completeness * 20.0
+            + feature_coverage * 15.0
+            + evidence_strength * 20.0
+            + evidence_diversity * 15.0
+            + longitudinal_stability * 20.0
+            + specificity * 10.0
+            - conflict_strength * 15.0
         )
-
-        if scan_count <= 1:
-            score = min(score, 20.0)
 
         return round(
             max(

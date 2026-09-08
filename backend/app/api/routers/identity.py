@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user
@@ -71,8 +71,8 @@ async def get_current_identity(
     response_model=IdentityResponse,
 )
 async def get_identity_detail(
-
     identity_id: int,
+    current_user: User = Depends(get_current_user),
 
     db: AsyncSession = Depends(get_db),
 
@@ -80,9 +80,10 @@ async def get_identity_detail(
 
     service = IdentityService(db)
 
-    return await service.get_detail(
-        identity_id
-    )
+    try:
+        return await service.get_detail(identity_id, user_id=current_user.user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 @router.get(

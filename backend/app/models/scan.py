@@ -5,6 +5,7 @@ from sqlalchemy import (
     SMALLINT,
     INTEGER,
     DECIMAL,
+    JSON,
     String,
     Text,
     TIMESTAMP,
@@ -243,6 +244,14 @@ class FeatureValue(Base):
         nullable=False,
     )
 
+    confidence_score: Mapped[float] = mapped_column(
+        DECIMAL(5, 4), server_default="0", nullable=False
+    )
+
+    calculation_version: Mapped[str] = mapped_column(
+        String(30), server_default="quality_v2", nullable=False
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
         server_default=func.now(),
@@ -257,3 +266,19 @@ class FeatureValue(Base):
         "Scan",
         back_populates="feature_values",
     )
+
+
+class FeatureObservation(Base):
+    __tablename__ = "feature_observations"
+
+    observation_id: Mapped[int] = mapped_column(BIGINT, primary_key=True, autoincrement=True)
+    scan_id: Mapped[int] = mapped_column(
+        BIGINT, ForeignKey("scans.scan_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    feature_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    observation_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    rule_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    strength: Mapped[float] = mapped_column(DECIMAL(5, 4), server_default="0", nullable=False)
+    direction: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    payload: Mapped[dict] = mapped_column(JSON, server_default="{}", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
