@@ -12,6 +12,8 @@ from app.services.identity_service import (
 
 from app.schemas.identity import (
     IdentityResponse,
+    IdentityFeedbackRequest,
+    IdentityFeedbackResponse,
 )
 
 from app.schemas.identity_history import (
@@ -103,3 +105,17 @@ async def get_identity_history(
     return await service.get_history(
         current_user.user_id
     )
+
+
+@router.post("/{identity_id}/feedback", response_model=IdentityFeedbackResponse)
+async def submit_identity_feedback(
+    identity_id: int,
+    request: IdentityFeedbackRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await IdentityService(db).submit_feedback(identity_id, current_user.user_id, request)
+    except ValueError as exc:
+        message = str(exc)
+        raise HTTPException(status_code=404 if message == "Identity not found." else 422, detail=message)

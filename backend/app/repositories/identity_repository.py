@@ -12,6 +12,7 @@ from app.models.identity import (
     IdentityKeywordMap,
     IdentityStrength,
     IdentityGrowthPoint,
+    IdentityFeedback,
 )
 
 
@@ -352,3 +353,38 @@ class IdentityRepository:
         version = result.scalar_one_or_none()
 
         return version or 0
+
+    async def upsert_feedback(self, identity_id: int, user_id: int, agreement: str, correction_text: str | None):
+        result = await self.db.execute(select(IdentityFeedback).where(
+            IdentityFeedback.identity_id == identity_id,
+            IdentityFeedback.user_id == user_id,
+        ))
+        feedback = result.scalar_one_or_none()
+        if feedback is None:
+            feedback = IdentityFeedback(identity_id=identity_id, user_id=user_id, agreement=agreement, correction_text=correction_text)
+            self.db.add(feedback)
+        else:
+            feedback.agreement = agreement
+            feedback.correction_text = correction_text
+        await self.db.flush()
+        await self.db.refresh(feedback)
+        return feedback
+
+    async def get_feedback(self, identity_id: int, user_id: int):
+        result = await self.db.execute(select(IdentityFeedback).where(
+            IdentityFeedback.identity_id == identity_id,
+            IdentityFeedback.user_id == user_id,
+        ))
+        return result.scalar_one_or_none()
+
+    async def get_latest_feedback(self, user_id: int):
+        result = await self.db.execute(select(IdentityFeedback).where(
+            IdentityFeedback.user_id == user_id,
+        ).order_by(IdentityFeedback.updated_at.desc(), IdentityFeedback.feedback_id.desc()).limit(1))
+        return result.scalar_one_or_none()
+
+    async def get_latest_feedback(self, user_id: int):
+        result = await self.db.execute(select(IdentityFeedback).where(
+            IdentityFeedback.user_id == user_id,
+        ).order_by(IdentityFeedback.updated_at.desc(), IdentityFeedback.feedback_id.desc()).limit(1))
+        return result.scalar_one_or_none()

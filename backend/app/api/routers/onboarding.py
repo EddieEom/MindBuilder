@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -35,6 +35,7 @@ from app.services.identity_service import IdentityService
 from app.services.seed_initialization_service import (
     SeedInitializationService,
 )
+from app.services.adaptive_scan_service import AdaptiveScanService
 
 router = APIRouter(
     tags=["Onboarding"],
@@ -70,6 +71,18 @@ async def get_onboarding_questions(
     )
 
     return await service.get_onboarding_questions()
+
+
+@router.get("/adaptive/questions", response_model=QuestionSetResponse)
+async def get_adaptive_questions(
+    limit: int = Query(default=3, ge=1, le=5),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await AdaptiveScanService(db).get_questions(current_user.user_id, limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post(

@@ -109,6 +109,30 @@ class IdentityPage extends ConsumerWidget {
                         color: const Color(0xFFE7AF68),
                       ),
                     ),
+                    if (identity.candidates.isNotEmpty)
+                      FeatureSection(
+                        '현재 정체성 후보',
+                        child: Column(
+                          children: identity.candidates
+                              .map(
+                                (candidate) => ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: CircleAvatar(
+                                    radius: 14,
+                                    child: Text('${candidate['rank'] ?? '-'}'),
+                                  ),
+                                  title: Text(
+                                    '${candidate['identity_name'] ?? ''}',
+                                  ),
+                                  trailing: Text('${candidate['score'] ?? 0}'),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    if (identity.id != null)
+                      IdentityFeedbackCard(identity: identity),
                     if (identityId == null && identity.id != null)
                       FilledButton(
                         onPressed: () =>
@@ -181,6 +205,119 @@ class IdentityPage extends ConsumerWidget {
               )
               .toList(),
         );
+}
+
+class IdentityFeedbackCard extends ConsumerWidget {
+  const IdentityFeedbackCard({super.key, required this.identity});
+  final IdentityModel identity;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => FeatureSection(
+    '이 설명이 나와 맞나요?',
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          identity.hypothesisStatus == 'REVIEW_REQUIRED'
+              ? '남겨주신 의견에 따라 정체성 가설을 다시 확인하고 있어요.'
+              : '현재 분석은 가설입니다. 의견을 저장하고 다시 확인할 수 있어요.',
+          style: const TextStyle(fontSize: 12, color: featureMuted),
+        ),
+        const SizedBox(height: 12),
+        if (identity.userPerspective?['correction_text'] != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              '내가 남긴 의견: ${identity.userPerspective!['correction_text']}',
+            ),
+          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children:
+              const [
+                    ('AGREE', '맞아요'),
+                    ('PARTIAL', '일부만 맞아요'),
+                    ('DISAGREE', '달라요'),
+                    ('UNSURE', '잘 모르겠어요'),
+                  ]
+                  .map(
+                    (choice) => ChoiceChip(
+                      label: Text(choice.$2),
+                      selected: identity.feedback?['agreement'] == choice.$1,
+                      onSelected: (_) => _submit(context, ref, choice.$1),
+                    ),
+                  )
+                  .toList(),
+        ),
+      ],
+    ),
+  );
+
+  Future<void> _submit(
+    BuildContext context,
+    WidgetRef ref,
+    String agreement,
+  ) async {
+    final needsCorrection = agreement == 'PARTIAL' || agreement == 'DISAGREE';
+    String? correction;
+    if (needsCorrection) {
+      final controller = TextEditingController();
+      correction = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('어떤 점이 다른가요?'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 1000,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              hintText: '내가 생각하는 나를 자유롭게 적어주세요.',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = controller.text.trim();
+                if (value.isNotEmpty) Navigator.pop(dialogContext, value);
+              },
+              child: const Text('저장'),
+            ),
+          ],
+        ),
+      );
+      controller.dispose();
+      if (correction == null) return;
+    }
+    if (!context.mounted) return;
+    try {
+      await ref
+          .read(identityRepositoryProvider)
+          .submitFeedback(
+            identityId: identity.id!,
+            agreement: agreement,
+            correctionText: correction,
+          );
+      ref.invalidate(identityProvider);
+      ref.invalidate(identityDetailProvider(identity.id!));
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('의견을 저장했어요.')));
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('의견을 저장하지 못했어요. 다시 시도해 주세요.')),
+        );
+      }
+    }
+  }
 }
 
 class IdentityHistoryList extends ConsumerWidget {

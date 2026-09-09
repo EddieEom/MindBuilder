@@ -7,7 +7,8 @@ import 'onboarding_other_page.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/routes/route_names.dart';
 class OnboardingPage extends StatefulWidget {
-  const OnboardingPage({super.key});
+  const OnboardingPage({super.key, this.adaptive = false});
+  final bool adaptive;
 
   @override
   State<OnboardingPage> createState() =>
@@ -67,8 +68,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
       debugPrint('Scan ID: $scanId');
 
       // 2. 질문 조회
-      final questionSet =
-          await _repository.getQuestions();
+      final questionSet = widget.adaptive
+          ? await _repository.getAdaptiveQuestions()
+          : await _repository.getQuestions();
 
       debugPrint(
         'Questions loaded: '

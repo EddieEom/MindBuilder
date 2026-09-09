@@ -11,6 +11,9 @@ from sqlalchemy import (
     TIMESTAMP,
     ForeignKey,
     func,
+    JSON,
+    CheckConstraint,
+    UniqueConstraint,
 )
 from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -71,6 +74,9 @@ class Identity(Base):
         nullable=False,
     )
 
+    candidate_snapshot: Mapped[list] = mapped_column(JSON, server_default="[]", nullable=False)
+    hypothesis_status: Mapped[str] = mapped_column(String(20), server_default="EMERGING", nullable=False)
+
     # Relationships
 
     user = relationship(
@@ -105,6 +111,23 @@ class Identity(Base):
 # ==========================================================
 # Identity Keyword
 # ==========================================================
+
+class IdentityFeedback(Base):
+    __tablename__ = "identity_feedback"
+    __table_args__ = (
+        CheckConstraint("agreement IN ('AGREE', 'PARTIAL', 'DISAGREE', 'UNSURE')", name="ck_identity_feedback_agreement"),
+        UniqueConstraint("identity_id", "user_id", name="uq_identity_feedback_identity_user"),
+    )
+
+    feedback_id: Mapped[int] = mapped_column(BIGINT, primary_key=True, autoincrement=True)
+    identity_id: Mapped[int] = mapped_column(BIGINT, ForeignKey("identities.identity_id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(BIGINT, ForeignKey("users.user_id"), nullable=False, index=True)
+    agreement: Mapped[str] = mapped_column(String(20), nullable=False)
+    correction_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    provenance: Mapped[str] = mapped_column(String(20), server_default="USER_CLAIM", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
 
 class IdentityKeyword(Base):
     __tablename__ = "identity_keywords"

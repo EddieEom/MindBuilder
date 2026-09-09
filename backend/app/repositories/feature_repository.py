@@ -95,7 +95,7 @@ class FeatureRepository:
                 FeatureObservation.observation_type == "CONFLICT",
             )
         )).scalar_one() or 0)
-        supported = [row for row in current if float(row.feature_value) != 0]
+        supported = [row for row in current if float(row.confidence_score) > 0]
         evidence_strength = (
             sum(float(row.confidence_score) for row in supported) / len(supported)
             if supported else 0.0
@@ -112,10 +112,13 @@ class FeatureRepository:
             previous = list((await self.db.execute(
                 select(FeatureValue).where(FeatureValue.scan_id == previous_scan_id)
             )).scalars().all())
-            previous_by_code = {row.feature_code: float(row.feature_value) for row in previous}
+            previous_by_code = {
+                row.feature_code: float(row.feature_value)
+                for row in previous if float(row.confidence_score) > 0
+            }
             comparisons = [
                 1.0 - min(abs(float(row.feature_value) - previous_by_code[row.feature_code]) / 100.0, 1.0)
-                for row in current if row.feature_code in previous_by_code
+                for row in supported if row.feature_code in previous_by_code
             ]
             if comparisons:
                 stability = sum(comparisons) / len(comparisons)
@@ -125,6 +128,24 @@ class FeatureRepository:
             "conflict_strength": min(conflict_strength, 1.0),
             "stability": stability,
         }
+
+    async def latest_observed_values(self, scan_id: int) -> dict:
+        scan = await self.db.get(Scan, scan_id)
+        if scan is None:
+            raise ValueError("Scan not found.")
+        rows = (await self.db.execute(
+            select(FeatureValue).join(Scan, Scan.scan_id == FeatureValue.scan_id).where(
+                Scan.user_id == scan.user_id,
+                Scan.status == "COMPLETED",
+                Scan.scan_id != scan_id,
+                Scan.started_at <= scan.started_at,
+                FeatureValue.confidence_score > 0,
+            ).order_by(Scan.started_at.desc(), Scan.scan_id.desc())
+        )).scalars().all()
+        latest = {}
+        for row in rows:
+            latest.setdefault(row.feature_code, row)
+        return latest
 
     @staticmethod
     def _conflict_strength(severity) -> float:

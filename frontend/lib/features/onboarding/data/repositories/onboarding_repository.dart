@@ -28,6 +28,16 @@ class OnboardingRepository {
     return response.data['scan_id'] as int;
   }
 
+  Future<OnboardingQuestionSet> getAdaptiveQuestions({int limit = 3}) async {
+    final response = await _dio.get(
+      '/api/v1/onboarding/adaptive/questions',
+      queryParameters: {'limit': limit},
+    );
+    return OnboardingQuestionSet.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
+
   Future<Map<String, dynamic>> submitAnswers({
     required int scanId,
     required List<Map<String, dynamic>> answers,

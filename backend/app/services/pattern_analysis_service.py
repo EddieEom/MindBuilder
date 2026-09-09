@@ -7,6 +7,7 @@ from app.ai.feature_extractor.feature_result import (
 )
 
 from app.models.analysis import Insight
+from app.services.feature_accumulation import accumulate_features
 
 
 class PatternAnalysisService:
@@ -43,12 +44,14 @@ class PatternAnalysisService:
                 answers
             )
 
-            pattern = await self.pattern_repository.create(
+            await self.feature_repository.create(
                 scan_id=scan_id,
                 result=result,
             )
 
-            await self.feature_repository.create(
+            previous = await self.feature_repository.latest_observed_values(scan_id)
+            result = accumulate_features(result, previous)
+            pattern = await self.pattern_repository.create(
                 scan_id=scan_id,
                 result=result,
             )

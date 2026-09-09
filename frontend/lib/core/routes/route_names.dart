@@ -3,6 +3,7 @@ abstract final class RouteNames {
   static const login = '/login';
 
   static const onboarding = '/onboarding';
+  static const adaptiveScan = '/scan/adaptive';
   static const scan = '/scan';
 
   static const dashboard = '/dashboard';

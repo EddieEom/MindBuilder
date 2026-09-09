@@ -26,6 +26,8 @@ from app.repositories.pattern_repository import (
 from app.schemas.growth import GrowthResponse
 from app.schemas.identity import (
     IdentityResponse,
+    IdentityFeedbackRequest,
+    IdentityFeedbackResponse,
 )
 
 
@@ -102,6 +104,12 @@ class IdentityService:
             evidence
         )
 
+        perspective = await self.identity_repository.get_latest_feedback(user_id)
+        hypothesis_status = identity_result.stage.upper()
+        if perspective and perspective.agreement in {"PARTIAL", "DISAGREE", "UNSURE"}:
+            hypothesis_status = "REVIEW_REQUIRED"
+            identity_result.warnings.append("사용자 의견을 반영해 정체성 가설의 재확인이 필요합니다.")
+
         current = await self.identity_repository.get_current(
             user_id
         )
@@ -127,6 +135,10 @@ class IdentityService:
             version = latest + 1,
 
             is_current=True,
+
+            candidate_snapshot=identity_result.ranking[:3],
+
+            hypothesis_status=hypothesis_status,
 
         )
 
@@ -227,6 +239,11 @@ class IdentityService:
             metadata=identity_result.metadata,
 
             warnings=identity_result.warnings,
+
+            candidates=identity_result.ranking[:3],
+
+            hypothesis_status=hypothesis_status,
+            user_perspective=self._feedback_dict(perspective),
 
         )
 
@@ -388,6 +405,14 @@ class IdentityService:
 
             warnings=[],
 
+            candidates=self._candidate_snapshot(identity),
+
+            hypothesis_status=identity.hypothesis_status,
+
+            feedback=self._feedback_dict(await self.identity_repository.get_feedback(identity.identity_id, user_id)),
+
+            user_perspective=self._feedback_dict(await self.identity_repository.get_latest_feedback(user_id)),
+
         )
 
 
@@ -477,7 +502,58 @@ class IdentityService:
             },
 
             warnings=[],
+
+            candidates=self._candidate_snapshot(identity),
+
+            hypothesis_status=identity.hypothesis_status,
+
+            feedback=self._feedback_dict(await self.identity_repository.get_feedback(identity.identity_id, user_id)),
+
+            user_perspective=self._feedback_dict(await self.identity_repository.get_latest_feedback(user_id)),
         )
+
+    async def submit_feedback(self, identity_id: int, user_id: int, request: IdentityFeedbackRequest):
+        identity = await self.identity_repository.get_by_id(identity_id)
+        if identity is None or identity.user_id != user_id:
+            raise ValueError("Identity not found.")
+        correction = request.correction_text.strip() if request.correction_text else None
+        if request.agreement in {"PARTIAL", "DISAGREE"} and not correction:
+            raise ValueError("A correction is required for partial agreement or disagreement.")
+        feedback = await self.identity_repository.upsert_feedback(
+            identity_id, user_id, request.agreement, correction
+        )
+        await self.identity_repository.commit()
+        return IdentityFeedbackResponse(
+            feedback_id=feedback.feedback_id,
+            identity_id=feedback.identity_id,
+            agreement=feedback.agreement,
+            correction_text=feedback.correction_text,
+            updated_at=feedback.updated_at,
+        )
+
+    @staticmethod
+    def _feedback_dict(feedback):
+        if feedback is None:
+            return None
+        return {
+            "feedback_id": feedback.feedback_id,
+            "identity_id": feedback.identity_id,
+            "agreement": feedback.agreement,
+            "correction_text": feedback.correction_text,
+            "updated_at": feedback.updated_at,
+            "provenance": feedback.provenance,
+        }
+
+    @staticmethod
+    def _candidate_snapshot(identity):
+        if identity.candidate_snapshot:
+            return list(identity.candidate_snapshot)
+        return [{
+            "rank": 1,
+            "identity_name": identity.identity_name,
+            "score": None,
+            "historical": True,
+        }]
 
     # ======================================================
     # Identity History

@@ -94,10 +94,74 @@ class FeatureDatabaseTests(unittest.IsolatedAsyncioTestCase):
         await self.get('identity/history')
         identity_id = identity['metadata']['identity_id']
         await self.get(f'identity/detail/{identity_id}')
+        feedback = await self.client.post(
+            f'/api/v1/identity/{identity_id}/feedback',
+            json={'agreement': 'PARTIAL', 'correction_text': 'I also value careful exploration.'},
+        )
+        self.assertEqual(feedback.status_code, 200)
+        current = await self.get('identity/current')
+        self.assertEqual(current['feedback']['agreement'], 'PARTIAL')
+        self.assertIn('candidates', current)
+        invalid = await self.client.post(
+            f'/api/v1/identity/{identity_id}/feedback', json={'agreement': 'DISAGREE'}
+        )
+        self.assertEqual(invalid.status_code, 422)
         self.owner = SimpleNamespace(user_id=-1)
         for path in (f'lifemap/node/{node_id}', f'identity/detail/{identity_id}'):
             response = await self.client.get('/api/v1/' + path)
             self.assertEqual(response.status_code, 404)
+
+    async def test_adaptive_questions_prioritize_low_confidence_features(self):
+        response = await self.client.get('/api/v1/onboarding/adaptive/questions?limit=3')
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['adaptive'])
+        self.assertLessEqual(len(payload['questions']), 3)
+        self.assertTrue(payload['questions'])
+        self.assertIn('information_need', payload['questions'][0])
+        self.assertIn('target_features', payload['questions'][0])
+
+    async def test_repeated_scan_feedback_journey(self):
+        questions = (await self.get('onboarding/questions'))['questions']
+
+        async def complete(selected):
+            started = await self.client.post('/api/v1/onboarding/start')
+            self.assertEqual(started.status_code, 200, started.text)
+            scan_id = started.json()['scan_id']
+            response = await self.client.post('/api/v1/onboarding/answers', json={
+                'scan_id': scan_id,
+                'answers': [{
+                    'question_id': q['question_id'],
+                    'option_id': q['options'][6 if len(selected) > 1 and q['question_id'] == 2 else 0]['option_id'],
+                    'point_value': 100 if q['question_type'] == 'POINT' else 0,
+                } for q in selected],
+            })
+            self.assertEqual(response.status_code, 200, response.text)
+            return scan_id, response.json()
+
+        _, first = await complete(questions)
+        identity_id = first['identity']['metadata']['identity_id']
+        correction = '실행 결과보다 충분히 탐색하는 과정을 중요하게 생각합니다.'
+        feedback = await self.client.post(f'/api/v1/identity/{identity_id}/feedback', json={
+            'agreement': 'PARTIAL', 'correction_text': correction,
+        })
+        self.assertEqual(feedback.status_code, 200, feedback.text)
+        for _ in range(2):
+            selected = (await self.get('onboarding/adaptive/questions?limit=1'))['questions']
+            self.assertIn(correction, selected[0]['description'])
+            scan_id, result = await complete(selected)
+            self.assertEqual(result['identity']['hypothesis_status'], 'REVIEW_REQUIRED')
+            self.assertEqual(result['identity']['user_perspective']['provenance'], 'USER_CLAIM')
+            carried = result['metadata']['carried_features']
+            self.assertTrue(carried, str(result['metadata']) + str(selected))
+            observations = (await self.session.execute(
+                select(FeatureObservation).where(FeatureObservation.scan_id == scan_id)
+            )).scalars().all()
+            self.assertFalse(any(row.feature_code in carried for row in observations))
+            current = await self.get('identity/current')
+            self.assertEqual(current['hypothesis_status'], 'REVIEW_REQUIRED')
+            self.assertEqual(current['user_perspective']['correction_text'], correction)
+            self.assertTrue(current['candidates'])
 
     async def test_hos_and_archive(self):
         os = await self.get('operating-system/current')

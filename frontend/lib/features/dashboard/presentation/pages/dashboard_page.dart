@@ -53,7 +53,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             FilledButton(
               onPressed: () {
                 Navigator.pop(context);
-                context.go(RouteNames.onboarding);
+                context.go(RouteNames.adaptiveScan);
               },
               child: const Text('Mind Scan 시작'),
             ),

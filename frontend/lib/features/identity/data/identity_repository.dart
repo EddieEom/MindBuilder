@@ -14,11 +14,25 @@ class IdentityModel {
       strengths = List<String>.from(json['strengths']),
       growthPoints = List<String>.from(json['growth_points']),
       metadata = Map<String, dynamic>.from(json['metadata'] ?? {}),
-      evidence = Map<String, dynamic>.from(json['evidence'] ?? {});
+      evidence = Map<String, dynamic>.from(json['evidence'] ?? {}),
+      candidates = (json['candidates'] as List? ?? const [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList(),
+      hypothesisStatus = json['hypothesis_status'] as String? ?? 'INSUFFICIENT',
+      feedback = json['feedback'] == null
+          ? null
+          : Map<String, dynamic>.from(json['feedback'] as Map),
+      userPerspective = json['user_perspective'] == null
+          ? null
+          : Map<String, dynamic>.from(json['user_perspective'] as Map);
   final String name, description;
   final double confidence, creativity, execution, uncertainty;
   final List<String> keywords, strengths, growthPoints;
   final Map<String, dynamic> metadata, evidence;
+  final List<Map<String, dynamic>> candidates;
+  final String hypothesisStatus;
+  final Map<String, dynamic>? feedback;
+  final Map<String, dynamic>? userPerspective;
   int? get id => (metadata['identity_id'] as num?)?.toInt();
 }
 
@@ -50,6 +64,17 @@ class IdentityRepository {
       ((await dio.get('/api/v1/identity/history')).data['histories'] as List)
           .map((e) => IdentityHistory.fromJson(Map<String, dynamic>.from(e)))
           .toList();
+  Future<Map<String, dynamic>> submitFeedback({
+    required int identityId,
+    required String agreement,
+    String? correctionText,
+  }) async => Map<String, dynamic>.from(
+    (await dio.post(
+          '/api/v1/identity/$identityId/feedback',
+          data: {'agreement': agreement, 'correction_text': correctionText},
+        )).data
+        as Map,
+  );
 }
 
 final identityRepositoryProvider = Provider(
@@ -58,9 +83,10 @@ final identityRepositoryProvider = Provider(
 final identityProvider = FutureProvider.autoDispose(
   (ref) => ref.watch(identityRepositoryProvider).current(),
 );
-final identityDetailProvider = FutureProvider.autoDispose.family<IdentityModel, int>(
-  (ref, id) => ref.watch(identityRepositoryProvider).detail(id),
-);
+final identityDetailProvider = FutureProvider.autoDispose
+    .family<IdentityModel, int>(
+      (ref, id) => ref.watch(identityRepositoryProvider).detail(id),
+    );
 final identityHistoryProvider = FutureProvider.autoDispose(
   (ref) => ref.watch(identityRepositoryProvider).history(),
 );

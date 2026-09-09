@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 
 
@@ -32,6 +32,9 @@ class QuestionResponse(BaseModel):
     question_type: str
     display_order: int
     options: List[QuestionOptionResponse]
+    target_features: List[str] = Field(default_factory=list)
+    information_need: float = 0.0
+    selection_reason: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -48,5 +51,7 @@ class QuestionSetResponse(BaseModel):
     description: Optional[str] = None
     target_stage: str
     questions: List[QuestionResponse]
+    adaptive: bool = False
+    source_scan_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

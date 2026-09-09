@@ -92,6 +92,11 @@ abstract final class AppRouter {
         ),
 
         GoRoute(
+          path: RouteNames.adaptiveScan,
+          builder: (context, state) => const OnboardingPage(adaptive: true),
+        ),
+
+        GoRoute(
           path: RouteNames.dashboard,
           builder: (context, state) {
             final extra = state.extra as Map?;
