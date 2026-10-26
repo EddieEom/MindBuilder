@@ -1,53 +1,14 @@
-<div align="center">
-
 # MindBuilder
 
-**생각을 기록하고 다음 행동의 방향을 찾는 개인 프로토타입**
+'나의 성장을 위한 인간 운영체제를 만들면 어떨까?'라는 생각에서 시작한 개인 실험입니다. 생각은 많은데 무엇부터 실행해야 할지 정리하기 어려웠고, AI를 그 과정에 써 보고 싶었습니다.
 
-</div>
+## 이 프로젝트에서 고민한 것
 
-<p align="center"><img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?style=flat-square"/> <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square"/> <img alt="Flutter" src="https://img.shields.io/badge/Flutter-02569B?style=flat-square"/> <img alt="OpenRouter" src="https://img.shields.io/badge/OpenRouter-222222?style=flat-square"/></p>
+AI를 단순히 질문에 답하는 용도 외에 어떻게 활용하면 좋을지 고민했습니다. 질문과 기록을 저장하고, 규칙 기반 분석과 LLM의 추천으로 이어지는 구조를 앱으로 옮겨 봤습니다.
 
+Flutter·FastAPI·PostgreSQL과 LLM API를 연결했고, 분석 규칙과 점수의 초안을 만드는 과정에도 AI를 활용했습니다. AI에 어떤 정보를 전달하고 어떤 처리를 코드로 나눌지 생각해 본 프로젝트입니다.
 
-| 형태 | 목표 | 구성 범위 |
-| :--- | :--- | :--- |
-| **개인 프로토타입** | 생각 정리 · 행동 방향 탐색 | 앱 · API · DB · LLM 연동 구조 |
-
-## 🧠 프로젝트에서 구성한 내용
-
-<table><tr>
-<td width="33%" valign="top"><b>입력과 기록</b><br><br>Flutter 질문 입력<br>답변 데이터 저장<br>사용자별 데이터 관리 구조</td>
-<td width="33%" valign="top"><b>분석 구조</b><br><br>점수 · 규칙 기반 처리<br>단계별 분석 결과 구성<br>결과 저장 구조</td>
-<td width="33%" valign="top"><b>결과와 추천</b><br><br>LLM API 연결<br>추천 문장 생성<br>분석 결과 화면 구성</td>
-</tr></table>
-
-생각은 많지만 무엇부터 실행해야 할지 정하기 어려웠던 경험에서 출발했습니다. 기획과 앱·서버 구성을 개인으로 진행했으며, 분석 규칙과 점수 초안에는 생성형 AI를 활용했습니다.
-
-## 주요 구성
-
-| 영역 | 구성 내용 |
-| --- | --- |
-| 앱 | Flutter 기반 질문 입력 및 분석 결과 화면 |
-| API | FastAPI 기반 사용자·답변·분석 결과 처리 |
-| DB | PostgreSQL·SQLAlchemy·Alembic을 활용한 저장 구조 |
-| 분석 | 답변을 점수와 규칙으로 처리하고 결과를 단계별로 구성 |
-| LLM | OpenRouter를 통한 모델 호출과 추천 문장 생성 |
-
-
-<details>
-<summary><b>📝 개발 상태 · 다음 과제</b></summary>
-
-## 개발 상태와 다음 과제
-
-현재는 기능 구성과 연동을 시도한 프로토타입 단계입니다. 전체 사용자 흐름의 통합 검증과 분석 규칙의 근거 정리를 다음 과제로 두고 있습니다.
-
-- 로그인 → 질문 응답 → 분석 → 결과 조회 흐름 점검
-- 분석 규칙과 점수 산정 기준 정리
-- 동일 입력 및 오류 상황에 대한 결과 기록
-
-코드의 `Feature`, `Pattern`, `Growth`, `Identity`, `Life Map`, `Human OS`는 내부 기능 구분에 사용하는 이름입니다. 분석 결과는 자기 탐색을 위한 실험적 출력입니다.
-
-</details>
+현재는 개인 프로토타입입니다. AI 활용 효율이나 사용자 성장 효과를 검증한 결과는 아니며, 전체 흐름의 통합 검증과 분석 기준 정리가 남아 있습니다.
 
 <details>
 <summary><b>⚙️ 환경변수 · 실행 방법</b></summary>
